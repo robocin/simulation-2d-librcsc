@@ -2,7 +2,7 @@
 
 This repository is a fork from the official librcsc, which implements funtamental tools to be used in the Simulation 2D Agent. The related project that uses this library is the [simulation-2d-cpp](https://github.com/robocin/simulation-2d-cpp).
 
-============
+
 INTRODUCTION
 ============
 The librcsc is the basic library package to develop the RoboCup Soccer
@@ -13,7 +13,7 @@ Simulation client and tools.
 
 - librcsc Homepage: http://rctools.sourceforge.jp/
 
-===========
+
 REQUIREMENT
 ===========
 librcsc-3.1.3 requires the following libraries:
@@ -23,7 +23,7 @@ librcsc-3.1.3 requires the following libraries:
 Please install them first before you start the installation of
 librcsc.
 
-=======
+
 INSTALL
 =======
 From the librcsc directory execute:
@@ -36,7 +36,7 @@ make install
 This will built the neccesary libraries and install them under
 '/usr/local'.
 
-========
+
 UNINSTAL
 ========
 The librcsc can also be easily removed by entering the distribution
@@ -44,7 +44,7 @@ directory and running `make uninstall'. This will remove all the
 files that where installed, but not any directories that were created
 during the installation process.
 
-===========
+
 CONFIGURING
 ===========
 Before you build the librcsc, you must run the `configure' script
