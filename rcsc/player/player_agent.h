@@ -259,6 +259,8 @@ public:
     bool doMove( const double & x,
                  const double & y );
 
+    bool doOmniDash( PlayerAgent * agent, Vector2D point );
+
     /*!
       \brief register tackle command
       \param power_or_dir tackle power or direction
