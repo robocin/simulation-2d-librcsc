@@ -44,7 +44,7 @@
 #include <rcsc/soccer_math.h>
 #include <rcsc/math_util.h>
 
-// #define USE_OMNI_DASH
+#define USE_OMNI_DASH
 // #define DEBUG_PRINT
 
 namespace rcsc {
