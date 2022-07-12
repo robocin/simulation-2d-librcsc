@@ -2735,11 +2735,9 @@ PlayerAgent::doDash( const double & power,
 }
 
 bool 
-PlayerAgent::doOmniDash( PlayerAgent * agent, Vector2D point ) {
-
-    std::cout << "DO OMNI DASH" << std::endl;
-    return Body_GoToPoint2009(point, 1.0, ServerParam::i().maxDashPower()).execute( agent );
-     
+PlayerAgent::doOmniDash( PlayerAgent * agent, Vector2D point ) 
+{
+    return Body_GoToPoint2009(point, 1.0, ServerParam::i().maxDashPower()).execute( agent );    
 }
 
 /*-------------------------------------------------------------------*/
