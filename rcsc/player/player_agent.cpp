@@ -62,6 +62,7 @@
 #include <rcsc/game_mode.h>
 #include <rcsc/timer.h>
 #include <rcsc/version.h>
+#include <rcsc/action/body_go_to_point.h>
 
 #include <sstream>
 #include <cstdio>
@@ -2763,6 +2764,12 @@ PlayerAgent::doDash( const double & power,
 
     M_effector.setDash( power, rel_dir );
     return true;
+}
+
+bool 
+PlayerAgent::doOmniDash( PlayerAgent * agent, Vector2D point ) {
+    std::cout << "DO OMNI DASH" << std::endl;
+    return Body_GoToPoint(point, 1.0, ServerParam::i().maxDashPower()).execute( agent );
 }
 
 /*-------------------------------------------------------------------*/
