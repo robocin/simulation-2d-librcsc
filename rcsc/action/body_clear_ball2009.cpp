@@ -62,17 +62,14 @@ namespace {
 
  */
 double
-get_minimum_evaluation( const AbstractPlayerCont & container,
+get_minimum_evaluation( const AbstractPlayerObject::Cont & container,
                         const PlayerEvaluator * evaluator )
 {
     double min_value = std::numeric_limits< double >::max();
 
-    const AbstractPlayerCont::const_iterator p_end = container.end();
-    for ( AbstractPlayerCont::const_iterator it = container.begin();
-          it != p_end;
-          ++it )
+    for ( const AbstractPlayerObject * p : container )
     {
-        double value = (*evaluator)( **it );
+        double value = (*evaluator)( *p );
 
         if ( value < min_value )
         {
@@ -92,9 +89,23 @@ double
 get_free_angle( const WorldModel & wm,
                 const AngleDeg & angle )
 {
-    return std::min( get_minimum_evaluation( wm.getPlayerCont( new OpponentOrUnknownPlayerPredicate( wm ) ),
-                                             new AbsAngleDiffPlayerEvaluator( wm.ball().pos(), angle ) ),
-                     360.0 );
+    // return std::min( get_minimum_evaluation( wm.getPlayerCont( new OpponentOrUnknownPlayerPredicate( wm ) ),
+    //                                          new AbsAngleDiffPlayerEvaluator( wm.ball().pos(), angle ) ),
+    //                  360.0 );
+
+    double min_diff = 360.0;
+    for ( const AbstractPlayerObject * p : wm.theirPlayers() )
+    {
+        if ( p->distFromBall() > 35.0 ) continue;
+
+        double angle_diff = ( angle - p->angleFromBall() ).abs();
+        if ( angle_diff < min_diff )
+        {
+            min_diff = angle_diff;
+        }
+    }
+
+    return min_diff;
 }
 
 /*-------------------------------------------------------------------*/
@@ -109,57 +120,105 @@ get_clear_course_recursive( const WorldModel & wm,
 {
     const ServerParam & param = ServerParam::i();
 
-    const double y_sign = sign( wm.ball().pos().y );
-
     Vector2D clear_point;
     AngleDeg clear_dir;
 
     for ( double x = 50.0; x > 11.0; x -= 10.0 )
     {
-        clear_point.assign( wm.self().pos().x + x,
-                            y_sign * ( param.pitchHalfWidth() - 2.0 ) );
+        double y_sign = sign( wm.ball().pos().y );
 
-        if ( wm.self().pos().dist2( clear_point ) >= 10.0 * 10.0 )
+        for ( int y = 0; y < 2; ++y )
         {
-            clear_dir = ( clear_point - wm.ball().pos() ).th();
+            clear_point.assign( wm.self().pos().x + x,
+                                y_sign * ( param.pitchHalfWidth() - 2.0 ) );
 
-            if ( get_free_angle( wm, clear_dir ) >= safe_angle )
+            if ( wm.self().pos().dist2( clear_point ) >= 10.0 * 10.0 )
             {
+                clear_dir = ( clear_point - wm.ball().pos() ).th();
 #ifdef DEBUG_PRINT_RECURSIVE
                 dlog.addText( Logger::CLEAR,
-                              __FILE__" (get_clear_course_recursive) recursive %d safe_angle=%.1f point=(%.1f %.1f).angle=%.1f",
-                              recursive_count,
-                              safe_angle,
-                              clear_point.x, clear_point.y,
-                              clear_dir.degree() );
+                              "clear recursive %d (1) angle=%.1f",
+                              recursive_count, clear_dir.degree() );
 #endif
-                return clear_dir;
+                if ( get_free_angle( wm, clear_dir ) >= safe_angle )
+                {
+#ifdef DEBUG_PRINT_RECURSIVE
+                    dlog.addLine( Logger::CLEAR,
+                                  wm.self().pos(), clear_point, "#00F" );
+                    dlog.addText( Logger::CLEAR,
+                                  __FILE__" (get_clear_course_recursive) recursive %d safe_angle=%.1f point=(%.1f %.1f).angle=%.1f",
+                                  recursive_count,
+                                  safe_angle,
+                                  clear_point.x, clear_point.y,
+                                  clear_dir.degree() );
+#endif
+                    return clear_dir;
+                }
             }
+
+            if ( wm.ball().pos().absY() > 3.0 )
+            {
+                break;
+            }
+
+            y_sign *= -1.0;
         }
     }
 
     // search from 30 degree to 75 degree
     for ( double dir = 30.0; dir <= 75.0 + EPS; dir += 1.0 )
     {
-        if ( get_free_angle( wm, y_sign * dir ) >= safe_angle )
+        double y_sign = sign( wm.ball().pos().y );
+
+        for ( int y = 0; y < 2; ++y )
         {
 #ifdef DEBUG_PRINT_RECURSIVE
             dlog.addText( Logger::CLEAR,
-                          __FILE__" (get_clear_course_recursive) recursive %d safe_angle=%.1f angle=%.1f",
-                          recursive_count,
-                          safe_angle,
-                          y_sign * dir );
+                          "clear recursive %d (2) angle=%.1f",
+                          recursive_count, y_sign * dir );
 #endif
-            return y_sign * dir;
+            if ( get_free_angle( wm, y_sign * dir ) >= safe_angle )
+            {
+#ifdef DEBUG_PRINT_RECURSIVE
+                dlog.addLine( Logger::CLEAR,
+                              wm.self().pos(),
+                              Vector2D::from_polar( 20.0, AngleDeg( y_sign * dir ) ),
+                              "#0F0" );
+                dlog.addText( Logger::CLEAR,
+                              __FILE__" (get_clear_course_recursive) recursive %d safe_angle=%.1f angle=%.1f",
+                              recursive_count,
+                              safe_angle,
+                              y_sign * dir );
+#endif
+                return y_sign * dir;
+            }
+
+            if ( wm.ball().pos().absY() > 3.0 )
+            {
+                break;
+            }
+
+            y_sign *= -1.0;
         }
     }
+
+    const double y_sign = sign( wm.ball().pos().y );
 
     // search from 30 degree to -30 degree
     for ( double dir = 30.0; dir >= -30.0 - EPS; dir -= 1.0 )
     {
+#ifdef DEBUG_PRINT_RECURSIVE
+        dlog.addText( Logger::CLEAR,
+                      "clear recursive %d (3) angle=%.1f",
+                      recursive_count, y_sign * dir );
+#endif
         if ( get_free_angle( wm, y_sign * dir ) >= safe_angle )
         {
 #ifdef DEBUG_PRINT_RECURSIVE
+            dlog.addLine( Logger::CLEAR,
+                          wm.self().pos(),
+                          Vector2D::from_polar( 20.0, AngleDeg( y_sign * dir ) ),
+                          "#0F0" );
             dlog.addText( Logger::CLEAR,
                           __FILE__" (get_clear_course_recursive) recursive %d safe_angle=%.1f angle=%.1f",
                           recursive_count,
@@ -190,6 +249,10 @@ get_clear_course_recursive( const WorldModel & wm,
         {
             // goal away
 #ifdef DEBUG_PRINT_RECURSIVE
+            dlog.addLine( Logger::CLEAR,
+                          wm.self().pos(),
+                          Vector2D::from_polar( 20.0, goal_away ),
+                          "#0FF" );
             dlog.addText( Logger::CLEAR,
                           __FILE__" (get_clear_course_recursive) goal_away" );
 #endif
@@ -204,10 +267,22 @@ get_clear_course_recursive( const WorldModel & wm,
 #endif
             if ( wm.self().pos().absY() <= 25.0 )
             {
+#ifdef DEBUG_PRINT_RECURSIVE
+                dlog.addLine( Logger::CLEAR,
+                              wm.self().pos(),
+                              Vector2D::from_polar( 20.0, AngleDeg( +y_sign * 3.0 ) ),
+                              "#FF0" );
+#endif
                 return + y_sign * 3.0;
             }
             else
             {
+#ifdef DEBUG_PRINT_RECURSIVE
+                dlog.addLine( Logger::CLEAR,
+                              wm.self().pos(),
+                              Vector2D::from_polar( 20.0, AngleDeg( -y_sign * 3.0 ) ),
+                              "#FF0" );
+#endif
                 return - y_sign * 3.0;
             }
         }
@@ -234,7 +309,7 @@ get_clear_course( const WorldModel & wm )
     s_update_time = wm.time();
 
 #ifdef DEBUG_PROFILE
-    MSecTimer timer;
+    Timer timer;
 #endif
     s_last_angle = get_clear_course_recursive( wm,
                                                25.0, /* safe angle */
@@ -275,7 +350,7 @@ Body_ClearBall2009::execute( PlayerAgent * agent )
 
 
     // enforce kick
-    if ( wm.existKickableOpponent() )
+    if ( wm.kickableOpponent() )
     {
         agent->debugClient().addMessage( "ClearEnforce" );
         dlog.addText( Logger::CLEAR,
@@ -290,7 +365,7 @@ Body_ClearBall2009::execute( PlayerAgent * agent )
     agent->debugClient().addLine( wm.ball().pos(), kick_target );
 
     if ( wm.gameMode().type() != GameMode::PlayOn
-         || get_minimum_evaluation( wm.getPlayerCont( new OpponentOrUnknownPlayerPredicate( wm ) ),
+         || get_minimum_evaluation( wm.getPlayers( new OpponentOrUnknownPlayerPredicate( wm ) ),
                                     new DistFromPosPlayerEvaluator( wm.ball().pos() ) ) < 1.5 )
     {
         agent->debugClient().addMessage( "Clear1" );

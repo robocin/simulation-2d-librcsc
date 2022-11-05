@@ -36,7 +36,6 @@
 #include "team_graphic.h"
 
 #include <algorithm>
-#include <functional> // ptr_fun
 #include <string>
 #include <fstream>
 #include <iostream>
@@ -49,7 +48,7 @@ namespace {
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 static
 bool
 read_xpm_string( std::istream & is,
@@ -87,7 +86,7 @@ read_xpm_string( std::istream & is,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 static
 bool
 read_xpm_header( std::istream & is,
@@ -147,7 +146,7 @@ read_xpm_header( std::istream & is,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 static
 bool
 read_xpm_colors( std::istream & is,
@@ -176,7 +175,7 @@ read_xpm_colors( std::istream & is,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 static
 bool
 read_xpm_body( std::istream & is,
@@ -206,7 +205,7 @@ read_xpm_body( std::istream & is,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 static
 bool
 read_xpm( std::istream & is,
@@ -247,13 +246,13 @@ const int TeamGraphic::MAX_COLOR = 256;
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 TeamGraphic::XpmTile::XpmTile( const int width,
                                const int height,
                                const int cpp )
-    : M_width( width )
-    , M_height( height )
-    , M_cpp( cpp )
+    : M_width( width ),
+      M_height( height ),
+      M_cpp( cpp )
 {
     M_pixel_lines.reserve( TILE_SIZE );
 }
@@ -261,7 +260,7 @@ TeamGraphic::XpmTile::XpmTile( const int width,
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 std::ostream &
 TeamGraphic::XpmTile::print( std::ostream & os ) const
 {
@@ -272,23 +271,15 @@ TeamGraphic::XpmTile::print( std::ostream & os ) const
        << '"';
     //os << "\n";
 
-    const std::vector< boost::shared_ptr< std::string > >::const_iterator cend
-        = colors().end();
-    for ( std::vector< boost::shared_ptr< std::string > >::const_iterator it
-              = colors().begin();
-          it != cend;
-          ++it )
+    for ( const std::shared_ptr< std::string > & c : colors() )
     {
-        os << " \"" << **it << '"';
+        os << " \"" << *c << '"';
         //os << "\n";
     }
 
-    const std::vector< std::string >::const_iterator pend = pixelLines().end();
-    for ( std::vector< std::string >::const_iterator it = pixelLines().begin();
-          it != pend;
-          ++it )
+    for ( const std::string & line : pixelLines() )
     {
-        os << " \"" << *it << '"';
+        os << " \"" << line << '"';
         //os << "\n";
     }
 
@@ -298,11 +289,11 @@ TeamGraphic::XpmTile::print( std::ostream & os ) const
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 TeamGraphic::TeamGraphic()
-    : M_width( 0 )
-    , M_height( 0 )
-    , M_cpp( 1 )
+    : M_width( 0 ),
+      M_height( 0 ),
+      M_cpp( 1 )
 {
 
 }
@@ -310,7 +301,7 @@ TeamGraphic::TeamGraphic()
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 void
 TeamGraphic::clear()
 {
@@ -325,7 +316,7 @@ TeamGraphic::clear()
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 bool
 TeamGraphic::createXpmTiles( const char * const * xpm_data )
 {
@@ -405,7 +396,7 @@ TeamGraphic::createXpmTiles( const char * const * xpm_data )
     //
     for ( int i = 0; i < xpm_n_color; ++i, ++xpm_data )
     {
-        boost::shared_ptr< std::string > ptr( new std::string( *xpm_data ) );
+        std::shared_ptr< std::string > ptr( new std::string( *xpm_data ) );
         M_colors.push_back( ptr );
     }
 
@@ -433,15 +424,6 @@ TeamGraphic::createXpmTiles( const char * const * xpm_data )
                                    max_y - start_y, // height
                                    xpm_cpp ) );
 
-            M_tiles.insert( std::pair< Index, Ptr >( index, tile ) );
-
-//             std::cout << "---- tile " << M_tiles.size()
-//                       << " (" << index_x << ' ' << index_y << ')'
-//                       << " size=" << max_x - start_x
-//                       << "x" << max_y - start_y
-//                       << " (start_x,start_y)=(" << start_x << ',' << start_y
-//                       << ")"
-//                       << std::endl;
             for ( int y = start_y; y < max_y; ++y )
             {
                 tile->addPixelLine( std::string( xpm_data[y],
@@ -452,44 +434,59 @@ TeamGraphic::createXpmTiles( const char * const * xpm_data )
                 //          << "] : " << y
                 //          << std::endl;
             }
+
+            //
+            // set shared color data strings
+            //
+            for ( const std::shared_ptr< std::string > & color : M_colors )
+            {
+                for ( const std::string & line : tile->pixelLines() )
+                {
+                    if ( line.find( (*color)[0] ) != std::string::npos )
+                    {
+                        tile->addColor( color );
+                        break;
+                    }
+                }
+            }
+
+            M_tiles.insert( Map::value_type( index, tile ) );
+            // std::cout << "---- tile " << M_tiles.size()
+            //           << " (" << index_x << ' ' << index_y << ')'
+            //           << " size=" << max_x - start_x << "x" << max_y - start_y
+            //           << " (start_x,start_y)=(" << start_x << ',' << start_y << ")"
+            //           << std::endl;
         }
     }
 
+#if 0
     //
     // set shared color data strings
     //
-    const Map::iterator tile_end = M_tiles.end();
-    const std::vector< boost::shared_ptr< std::string > >::iterator color_end = M_colors.end();
-
-    for ( std::vector< boost::shared_ptr< std::string > >::iterator color = M_colors.begin();
-          color != color_end;
-          ++color )
+    for ( const std::shared_ptr< std::string > & color : M_colors )
     {
-        for ( Map::iterator tile = M_tiles.begin();
+        for ( Map::iterator tile = M_tiles.begin(), tile_end = M_tiles.end();
               tile != tile_end;
               ++tile )
         {
-            const std::vector< std::string >::const_iterator line_end = tile->second->pixelLines().end();
-            for ( std::vector< std::string >::const_iterator line = tile->second->pixelLines().begin();
-                  line != line_end;
-                  ++line )
+            for ( const std::string & line = tile->second->pixelLines() )
             {
-                if ( line->find( (**color)[0] ) != std::string::npos )
+                if ( line.find( (**color)[0] ) != std::string::npos )
                 {
-                    tile->second->addColor( *color );
+                    tile->second->addColor( color );
                     break;
                 }
             }
         }
     }
-
+#endif
     return true;
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 bool
 TeamGraphic::parse( const char * server_msg )
 {
@@ -558,8 +555,8 @@ TeamGraphic::parse( const char * server_msg )
         }
         server_msg += n_read;
 
-        boost::shared_ptr< std::string > new_col( new std::string( line_buf ) );
-        boost::shared_ptr< std::string > col = findColor( *new_col );
+        std::shared_ptr< std::string > new_col( new std::string( line_buf ) );
+        std::shared_ptr< std::string > col = findColor( *new_col );
         if ( col )
         {
             tile->addColor( col );
@@ -610,7 +607,7 @@ TeamGraphic::parse( const char * server_msg )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 bool
 TeamGraphic::readXpmFile( const char * file_path )
 {
@@ -669,7 +666,7 @@ TeamGraphic::readXpmFile( const char * file_path )
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 bool
 TeamGraphic::isValid() const
 {
@@ -685,13 +682,10 @@ TeamGraphic::isValid() const
     int max_x = 0;
     int max_y = 0;
 
-    const Map::const_iterator end = tiles().end();
-    for ( Map::const_iterator tile = tiles().begin();
-          tile != end;
-          ++tile )
+    for ( const Map::value_type & tile : tiles() )
     {
-        if ( tile->first.first > max_x ) max_x = tile->first.first;
-        if ( tile->first.second > max_y ) max_y = tile->first.second;
+        if ( tile.first.first > max_x ) max_x = tile.first.first;
+        if ( tile.first.second > max_y ) max_y = tile.first.second;
     }
 
     if ( static_cast< int >( tiles().size() ) != ( max_x + 1 ) * ( max_y + 1 ) )
@@ -705,40 +699,34 @@ TeamGraphic::isValid() const
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
-boost::shared_ptr< std::string >
+ */
+std::shared_ptr< std::string >
 TeamGraphic::findColor( const std::string & str )
 {
-    const std::vector< boost::shared_ptr< std::string > >::iterator color_end = M_colors.end();
-    for ( std::vector< boost::shared_ptr< std::string > >::iterator color = M_colors.begin();
-          color != color_end;
-          ++color )
+    for ( std::shared_ptr< std::string > color : M_colors )
     {
-        if ( **color == str )
+        if ( *color == str )
         {
-            return *color;
+            return color;
         }
     }
 
-    return boost::shared_ptr< std::string >();
+    return std::shared_ptr< std::string >();
 }
 
 /*-------------------------------------------------------------------*/
 /*!
 
-*/
+ */
 std::ostream &
 TeamGraphic::print( std::ostream & os ) const
 {
-    const Map::const_iterator end = tiles().end();
-    for ( Map::const_iterator tile = tiles().begin();
-          tile != end;
-          ++tile )
+    for ( const Map::value_type & tile : tiles() )
     {
         //os << "colors = " << tile->second->colors().size() << "\n";
-        os << '(' << tile->first.first
-           << ' ' << tile->first.second << ' ';
-        tile->second->print( os );
+        os << '(' << tile.first.first
+           << ' ' << tile.first.second << ' ';
+        tile.second->print( os );
         os << ")\n";
     }
 

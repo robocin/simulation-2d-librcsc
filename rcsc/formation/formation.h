@@ -1,8 +1,8 @@
 // -*-c++-*-
 
 /*!
-	\file formation.h
-	\brief abstract formation classes Header File.
+  \file formation.h
+  \brief abstract formation classes Header File.
 */
 
 /*
@@ -32,12 +32,12 @@
 #ifndef RCSC_FORMATION_FORMATION_H
 #define RCSC_FORMATION_FORMATION_H
 
-#include <rcsc/formation/sample_data.h>
+#include <rcsc/formation/formation_data.h>
+#include <rcsc/formation/role_type.h>
 #include <rcsc/geom/vector_2d.h>
-#include <rcsc/factory.h>
+#include <rcsc/types.h>
 
-#include <boost/shared_ptr.hpp>
-
+#include <memory>
 #include <string>
 #include <list>
 #include <vector>
@@ -52,343 +52,236 @@ namespace rcsc {
 class Formation {
 public:
 
-    typedef boost::shared_ptr< Formation > Ptr; //<! pointer type
-    typedef boost::shared_ptr< const Formation > ConstPtr; //<! const pointer type
-    typedef Ptr (*Creator)(); //!< creator function
-    typedef rcss::Factory< Creator, std::string > Creators; //!< creator function holder
-
-
-    /*!
-      \enum SideType
-      \brief enumeration for the side type in formation
-     */
-    enum SideType {
-        SIDE = -1, //!< original type, consider all region
-        SYMMETRY = 1, //!< symmetry type, this type refers SIDE
-        CENTER = 0, //!< original type, consider half region
-    };
-
-    /*!
-      \brief creator holder singleton
-      \return reference to the creator holder instance
-     */
-    static
-    Creators & creators();
-
+    typedef std::shared_ptr< Formation > Ptr; //<! pointer type
+    typedef std::shared_ptr< const Formation > ConstPtr; //<! const pointer type
 
     /*!
       \brief create a formation instance based on the input name.
       \param name formation type name
       \return smart pointer to the formation instance
-     */
+    */
     static
     Ptr create( const std::string & name );
 
-    /*!
-      \brief create a formation instance based on the input stream.
-      \param is reference to the input stream (usually fstream).
-      \return smart pointer to the formation instance
-     */
-    static
-    Ptr create( std::istream & is );
-
 protected:
 
-    /*!
-      \brief data format version.
-     */
-    int M_version;
+    std::string M_version; //!< version string
+
+    std::array< std::string, 11 > M_role_names; //!< role name array
+    std::array< RoleType, 11 > M_role_types; //!< role type array
+    std::array< int, 11 > M_position_pairs; //!< the paired position number array. 0 means no pair.
+
 
     /*!
-      \brief symmetry number holder.
-      negative number means this player is original SIDE type.
-      positive numver means that this player is SYMMETRY type and
-      referes other player.
-      Zero means that this player is CENTER type.
+      \brief initialize paired position number array with 0
     */
-    int M_symmetry_number[11];
-
-    /*!
-      \brief training data holder.
-     */
-    formation::SampleDataSet::Ptr M_samples;
+    Formation();
 
 public:
 
     /*!
-      \brief initialize symmetry number matrix by -1
-    */
-    Formation();
-
-    /*!
       \brief destructor.
-     */
+    */
     virtual
     ~Formation()
-      { }
+    { }
 
     /*!
-      \brief create default formation. assign role and initial positions.
-      \return snapshot variable for the initial state(ball pos=(0,0)).
-    */
-    virtual
-    void createDefaultData() = 0;
-
-    /*!
-      \brief get data format version.
-      \return data format version.
+      \brief get the version string
+      \return const reference to the string
      */
-    int version() const
-      {
-          return M_version;
-      }
+    const std::string & version() const
+    {
+        return M_version;
+    }
 
     /*!
-      \brief get the formation method type name.
+      \brief get the role name array
+      \return const reference to the array
+     */
+    const std::array< std::string, 11 > & roleNames() const
+    {
+        return M_role_names;
+    }
+
+    /*!
+      \brief get the role type array
+      \return const reference to the array
+     */
+    const std::array< RoleType, 11 > & roleTypes() const
+    {
+        return M_role_types;
+    }
+
+    /*!
+      \brief get the position pair array
+      \return const reference to the array
+     */
+    const std::array< int, 11 > & positionPairs() const
+    {
+        return M_position_pairs;
+    }
+
+    /*!
+      \brief get role name value
+      \param num target position number
+      \return role name string
+    */
+    std::string roleName( const int num ) const
+    {
+        return ( num < 1 || 11 < num
+                 ? std::string()
+                 : M_role_names[num - 1] );
+    }
+
+    /*!
+      \brief get role type value
+      \param num target player's position number
+      \return role type
+    */
+    RoleType roleType( const int num ) const
+    {
+        return ( num < 1 || 11 < num
+                 ? RoleType()
+                 : M_role_types[num - 1] );
+    }
+
+    /*!
+      \brief get paired position number
+      \param num target position number
+      \retrun position number
+    */
+    int pairedNumber( const int num ) const
+    {
+        return ( num < 1 || 11 < num
+                 ? 0
+                 : M_position_pairs[num - 1] );
+    }
+
+public:
+
+    /*!
+      \brief set the version string
+      \param ver version string
+      \return true if success
+    */
+    bool setVersion( const std::string & ver );
+
+    /*!
+      \brief set the role name
+      \param num position number
+      \param name role name string
+      \return true if success
+    */
+    bool setRoleName( const int num,
+                      const std::string & name );
+
+    /*!
+      \brief set the role type
+      \param num position number
+      \param type role type value
+      \return true if success
+    */
+    bool setRoleType( const int num,
+                      const RoleType & type );
+
+    /*!
+      \brief set the position pair
+      \param num position number
+      \param paired_num pared player's uniform number
+      \return true if success
+    */
+    bool setPositionPair( const int num,
+                          const int paired_num );
+
+    /*!
+      \brief set role data
+      \param num position number
+      \param type role type info
+      \param paired_num paired position number
+      \return true if success
+    */
+    bool setRole( const int num,
+                  const std::string & name,
+                  const RoleType & type,
+                  const int paired_num );
+
+    /*!
+      \brief get the method name of the formation model
       \return name string
     */
     virtual
     std::string methodName() const = 0;
 
     /*!
-      \brief get sample point set.
-      \return shared pointer to the training data object.
-     */
-    formation::SampleDataSet::Ptr samples()
-      {
-          return M_samples;
-      }
-
-    /*!
-      \brief get sample point set.
-      \return shared pointer to the training data object.
-     */
-    formation::SampleDataSet::ConstPtr samples() const
-      {
-          return M_samples;
-      }
-
-    /*!
-      \brief set new sample point set.
-      \param samples pointer to the new data instance.
-     */
-    void setSamples( formation::SampleDataSet::Ptr samples )
-      {
-          M_samples = samples;
-      }
-
-    /*!
-      \brief check if player is SIDE type or not
-      \param unum player's number
-      \return true or false
-    */
-    bool isSideType( const int unum ) const
-      {
-          if ( unum < 1 || 11 < unum ) return false;
-          return ( M_symmetry_number[unum - 1] < 0 );
-      }
-
-    /*!
-      \brief check if player is center type or not
-      \param unum player's number
-      \return true or false
-    */
-    bool isCenterType( const int unum ) const
-      {
-          if ( unum < 1 || 11 < unum ) return false;
-          return ( M_symmetry_number[unum - 1] == 0 );
-      }
-
-    /*!
-      \brief check if player is right side type or not
-      \param unum player's number
-      \return true or false
-    */
-    bool isSymmetryType( const int unum ) const
-      {
-          if ( unum < 1 || 11 < unum ) return false;
-          return ( M_symmetry_number[unum - 1] > 0 );
-      }
-
-    /*!
-      \brief get symmetry reference number of the specified player.
-      \param unum target player's number
-      \return number that player refers, if player is SYMMETRY type.
-      otherwise 0 or -1.
-    */
-    int getSymmetryNumber( const int unum ) const
-      {
-          if ( unum < 1 || 11 < unum ) return 0;
-          return M_symmetry_number[unum - 1];
-      }
-
-    //--------------------------------------------------------------
-
-    /*!
-      \brief set player's role data. if necessary, new parameter is created.
-      \param unum status changed player's uniform number
-      \param symmetry_unum 0 means type is CENTER, <0 means type is SIDE,
-      >0 means type is SYMMETRY
-      \param role_name new role name string
-      \return result of the registration
-    */
-    bool updateRole( const int unum,
-                     const int symmetry_unum,
-                     const std::string & role_name );
-
-protected:
-
-    /*!
-      \brief create new role parameter.
-      \param unum target player's number
-      \param role_name new role name
-      \param type side type of this parameter
-    */
-    virtual
-    void createNewRole( const int unum,
-                        const std::string & role_name,
-                        const SideType type ) = 0;
-
-    /*!
-      \brief set the role name of the specified player
-      \param unum target player's number
-      \param name role name string.
-    */
-    virtual
-    void setRoleName( const int unum,
-                      const std::string & name ) = 0;
-
-
-    /*!
-      \brief set the specified player to the CENTER type
-      \param unum player's number
-    */
-    void setCenterType( const int unum );
-
-    /*!
-      \brief set the specified player to the SIDE type
-      \param unum player's number
-    */
-    void setSideType( const int unum );
-
-    /*!
-      \brief set symmetry player info
-      \param unum changed player's number
-      \param symmetry_unum refered player number
-    */
-    bool setSymmetryType( const int unum,
-                          const int symmetry_unum,
-                          const std::string & role_name );
-
-public:
-
-    /*!
-      \brief get the role name of the specified player
-      \param unum target player's number
-      \return role name string. if empty string is returned,
-      that means no role parameter is assigned for unum.
-    */
-    virtual
-    std::string getRoleName( const int unum ) const = 0;
-
-    /*!
       \brief get position for the current focus point
-      \param unum player number
+      \param num player number
       \param focus_point current focus point, usually ball position.
     */
     virtual
-    Vector2D getPosition( const int unum,
+    Vector2D getPosition( const int num,
                           const Vector2D & focus_point ) const = 0;
 
     /*!
       \brief get all positions for the current focus point
       \param focus_point current focus point, usually ball position
       \param positions contaner to store the result
-     */
+    */
     virtual
     void getPositions( const Vector2D & focus_point,
                        std::vector< Vector2D > & positions ) const = 0;
 
     /*!
       \brief update formation paramter using training data set
+      \param data training data
+      \return true if success
     */
     virtual
-    void train() = 0;
+    bool train( const FormationData & data ) = 0;
 
     /*!
-      \brief read all data from the input stream.
-      \param is reference to the input stream.
-      \return result status.
-    */
-    bool read( std::istream & is );
+      \brief create data for the editor
+      \return formation data
+     */
+    virtual
+    FormationData::Ptr toData() const = 0;
 
     /*!
-      \brief put all data to the output stream.
-      \param os reference to the output stream
-      \return reference to the output stream
-    */
-    std::ostream & print( std::ostream & os ) const;
-
+      \brief print formation model to the output stream
+      \param os output stream
+      \return true if success
+     */
+    bool print( std::ostream & os ) const;
 
 protected:
+    /*!
+      \brief print version string
+      \param os output stream
+      \return true if success
+     */
+    bool printVersion( std::ostream & os ) const;
 
-    //
-    // read
-    //
-
+        /*!
+      \brief print method name
+      \param os output stream
+      \return true if success
+     */
+    bool printMethodName( std::ostream & os ) const;
 
     /*!
-      \brief read header information (formation type name, format version...)
-      \param is reference to the input stream
-      \return result status.
-    */
-    virtual
-    bool readHeader( std::istream & is );
+      \brief print role array
+      \param os output stream
+      \return true if success
+     */
+    bool printRoles( std::ostream & os ) const;
 
     /*!
-      \brief read conf data from the input stream.
-      \param is reference to the input stream.
-      \return result status.
-    */
+      \brief print model data
+      \param os output stream
+      \return true if success
+     */
     virtual
-    bool readConf( std::istream & is ) = 0;
-
-    /*!
-      \brief read sample point data from the input stream.
-      \param is reference to the input stream.
-      \return result status.
-    */
-    virtual
-    bool readSamples( std::istream & is );
-
-
-    //
-    // print
-    //
-
-    /*!
-      \brief put header information to the output stream
-      \param os reference to the output stream
-      \return reference to the output stream
-    */
-    virtual
-    std::ostream & printHeader( std::ostream & os ) const;
-
-    /*!
-      \brief put conf data to the output stream.
-      \param os reference to the output stream
-      \return reference to the output stream
-    */
-    virtual
-    std::ostream & printConf( std::ostream & os ) const = 0;
-
-    /*!
-      \brief put sample point data to the output stream.
-      \param os reference to the output stream
-      \return reference to the output stream
-    */
-    virtual
-    std::ostream & printSamples( std::ostream & os ) const;
+    bool printData( std::ostream & os ) const = 0;
 };
 
 }

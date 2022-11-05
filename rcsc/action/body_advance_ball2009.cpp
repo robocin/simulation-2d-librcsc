@@ -35,8 +35,10 @@
 
 #include "body_advance_ball2009.h"
 
-#include <rcsc/action/body_smart_kick.h>
-#include <rcsc/action/body_kick_one_step.h>
+#include "kick_table.h"
+
+#include "body_smart_kick.h"
+#include "body_kick_one_step.h"
 
 #include <rcsc/player/player_agent.h>
 #include <rcsc/player/debug_client.h>
@@ -70,19 +72,15 @@ calc_score( const PlayerAgent * agent,
     const AngleDeg target_left_angle = target_angle - 30.0;
     const AngleDeg target_right_angle = target_angle + 30.0;
 
-    const PlayerPtrCont::const_iterator end = agent->world().opponentsFromSelf().end();
-    for ( PlayerPtrCont::const_iterator it = agent->world().opponentsFromSelf().begin();
-          it != end;
-          ++it )
+    for ( const PlayerObject * o : agent->world().opponentsFromSelf() )
     {
-        if ( (*it)->distFromBall() > 40.0 ) continue;
+        if ( o->distFromBall() > 40.0 ) continue;
 
-        if ( (*it)->angleFromSelf().isWithin( target_left_angle,
-                                              target_right_angle ) )
+        if ( o->angleFromSelf().isWithin( target_left_angle, target_right_angle ) )
         {
-            Vector2D project_point = angle_line.projection( (*it)->pos() );
+            Vector2D project_point = angle_line.projection( o->pos() );
             double width = std::max( 0.0,
-                                     angle_line.dist( (*it)->pos() ) - kickable_area );
+                                     angle_line.dist( o->pos() ) - kickable_area );
             double dist = agent->world().self().pos().dist( project_point );
             score *= width / dist;
         }
@@ -154,7 +152,7 @@ Body_AdvanceBall2009::execute( PlayerAgent * agent )
 {
     const WorldModel & wm = agent->world();
 
-    dlog.addText( Logger::TEAM,
+    dlog.addText( Logger::ACTION,
                   __FILE__": Body_AdvanceBall" );
 
     if ( ! wm.self().isKickable() )
@@ -197,13 +195,12 @@ Body_AdvanceBall2009::execute( PlayerAgent * agent )
     }
 
     Vector2D one_step_vel
-        = Body_KickOneStep::get_max_possible_vel
-        ( ( target_point - wm.ball().pos() ).th(),
-          wm.self().kickRate(),
-          wm.ball().vel() );
+        // = Body_KickOneStep::get_max_possible_vel
+        = KickTable::calc_max_velocity( ( target_point - wm.ball().pos() ).th(),
+                                        wm.self().kickRate(),
+                                        wm.ball().vel() );
 
-    if ( one_step_vel.r() > 2.1 )
-    //if ( one_step_vel.r() > ServerParam::i().ballSpeedMax() * 0.7 )
+    if ( one_step_vel.r() > ServerParam::i().ballSpeedMax() * 0.7 ) //if ( one_step_vel.r() > 2.1 )
     {
         Body_KickOneStep( target_point,
                           ServerParam::i().ballSpeedMax()

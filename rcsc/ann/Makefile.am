@@ -1,10 +1,13 @@
 ## Process this file with automake to produce Makefile.in
 
-lib_LTLIBRARIES = librcsc_ann.la
+noinst_LTLIBRARIES = librcsc_ann.la
+#lib_LTLIBRARIES = librcsc_ann.la
 
 librcsc_ann_la_SOURCES = \
 	ngnet.cpp \
-	rbf.cpp
+	rbf.cpp \
+	sirm.cpp \
+	sirms_model.cpp
 
 librcsc_annincludedir = $(includedir)/rcsc/ann
 
@@ -12,9 +15,11 @@ librcsc_annincludedir = $(includedir)/rcsc/ann
 librcsc_anninclude_HEADERS = \
 	bpn1.h \
 	ngnet.h \
-	rbf.h
+	rbf.h \
+	sirm.h \
+	sirms_model.h
 
-librcsc_ann_la_LDFLAGS = -version-info 1:1:0
+librcsc_ann_la_LDFLAGS = -version-info 2:0:0
 #libXXXX_la_LDFLAGS = -version-info $(LT_CURRENT):$(LT_REVISION):$(LT_AGE)
 #    1. Start with version information of `0:0:0' for each libtool library.
 #

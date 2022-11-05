@@ -2,7 +2,7 @@
 
 /*!
   \file self_object.h
-  \brief self object class Source File
+  \brief self object class Header File
 */
 
 /*
@@ -85,6 +85,7 @@ private:
     int M_charged_expires; //!< foul charged expires. if positive, agent cannot perfome any body action.
 
     int M_arm_movable; //!< cycles till arm movable
+    int M_arm_expires; //!< cycles till arm stops pointing
     Vector2D M_pointto_rpos; //!< estimated pointing position relative to the neck
     Vector2D M_pointto_pos; //!< estimated pointing position
     GameTime M_last_pointto_time; //!< action performed time
@@ -111,9 +112,9 @@ private:
     double M_foul_probability; //!< estimated tackle success probability
 
     //! not used
-    SelfObject( const SelfObject & self );
+    SelfObject( const SelfObject & self ) = delete;
     //! not used
-    SelfObject & operator=( const SelfObject & self );
+    SelfObject & operator=( const SelfObject & self ) = delete;
 
 public:
 
@@ -124,8 +125,7 @@ public:
     /*!
       \brief destructor. nothing to do
     */
-    ~SelfObject()
-      { }
+    ~SelfObject() = default;
 
     /*!
       \brief set accuracy count threshold values.
@@ -171,8 +171,7 @@ public:
       \brief get player type parameter
       \return const reference to the player type object
     */
-    const
-    PlayerType & playerType() const
+    const PlayerType & playerType() const
       {
           return *M_player_type;
       }
@@ -200,8 +199,7 @@ public:
       \brief get estimated error of agent's global position
       \return const reference to the error vector
     */
-    const
-    Vector2D & posError() const
+    const Vector2D & posError() const
       {
           return M_pos_error;
       }
@@ -210,8 +208,7 @@ public:
       \brief get global position at previous cycle
       \return const reference to the position object
     */
-    const
-    Vector2D & posPrev() const
+    const Vector2D & posPrev() const
       {
           return M_pos_prev;
       }
@@ -229,8 +226,7 @@ public:
       \brief get estimated error of velocity
       \return const reference to the error vector object
     */
-    const
-    Vector2D & velError() const
+    const Vector2D & velError() const
       {
           return M_vel_error;
       }
@@ -239,8 +235,7 @@ public:
       \brief get estimated neck angle relative to body angle
       \return const reference to the angle object
     */
-    const
-    AngleDeg & neck() const
+    const AngleDeg & neck() const
       {
           return M_neck;
       }
@@ -249,8 +244,7 @@ public:
       \brief get estimated error about angle
       \return error value about angle
     */
-    const
-    double & faceError() const
+    const double & faceError() const
       {
           return M_face_error;
       }
@@ -259,8 +253,7 @@ public:
       \brief get current view width
       \return const reference to the view width object
     */
-    const
-    ViewWidth & viewWidth() const
+    const ViewWidth & viewWidth() const
       {
           return M_view_width;
       }
@@ -269,18 +262,16 @@ public:
       \brief get current view quality
       \return const reference to the view quality object
     */
-    const
-    ViewQuality & viewQuality() const
+    const ViewQuality & viewQuality() const
       {
           return M_view_quality;
       }
 
     /*!
-      \brief get last catch performed time
+      \brief get time when the last catch command is performed
       \return const reference to the time object
     */
-    const
-    GameTime & catchTime() const
+    const GameTime & catchTime() const
       {
           return M_last_catch_time;
       }
@@ -319,7 +310,7 @@ public:
       }
 
     /*!
-      \brief get arm movable count
+      \brief get arm movable count. if this value equals 0, agent can perform pointto command.
       \return cycles till arm is movable
     */
     int armMovable() const
@@ -328,11 +319,19 @@ public:
       }
 
     /*!
+      \brief get am expires count. if this value equals 0, agent is not pointing anywhere.
+      \return cycles till arm stops pointing.
+     */
+    int armExpires() const
+      {
+          return M_arm_expires;
+      }
+
+    /*!
       \brief get estimated pointing point
       \brief const reference to the point object
     */
-    const
-    Vector2D & pointtoPos() const
+    const Vector2D & pointtoPos() const
       {
           return M_pointto_pos;
       }
@@ -341,8 +340,7 @@ public:
       \brief get pointto action performed time
       \brief const reference to the time object
     */
-    const
-    GameTime & pointtoTime() const
+    const GameTime & pointtoTime() const
       {
           return M_last_pointto_time;
       }
@@ -369,8 +367,7 @@ public:
       \brief get current stamina model.
       \return stamina model object.
      */
-    const
-    StaminaModel & staminaModel() const
+    const StaminaModel & staminaModel() const
       {
           return M_stamina;
       }
@@ -379,8 +376,7 @@ public:
       \brief get current stamina value
       \return raw stamina value from stamina object
     */
-    const
-    double & stamina() const
+    double stamina() const
       {
           return M_stamina.stamina();
       }
@@ -389,8 +385,7 @@ public:
       \brief get current stamina capacity value
       \return raw stamina capacity value from stamina object
     */
-    const
-    double & staminaCapacity() const
+    double staminaCapacity() const
       {
           return M_stamina.capacity();
       }
@@ -399,8 +394,7 @@ public:
       \brief get current effort value
       \return effort value from stamina object
     */
-    const
-    double & effort() const
+    double effort() const
       {
           return M_stamina.effort();
       }
@@ -409,8 +403,7 @@ public:
       \brief get current estimated recovery value
       \return recovery value from stamina object
     */
-    const
-    double & recovery() const
+    double recovery() const
       {
           return M_stamina.recovery();
       }
@@ -476,8 +469,7 @@ public:
       \brief get last move vector (transformation from previous to current)
       \return const reference to the vector object
     */
-    const
-    Vector2D & lastMove() const
+    const Vector2D & lastMove() const
       {
           return M_last_move;
       }
@@ -486,8 +478,7 @@ public:
       \brief get last 3 move vectors
       \return const reference to the vector object
     */
-    const
-    Vector2D & lastMove( const int i ) const
+    const Vector2D & lastMove( const int i ) const
       {
           if ( i < 0 || 2 < i ) return M_last_moves[3];
           return M_last_moves[i];
@@ -524,19 +515,28 @@ public:
       \brief get estimated catch success probability
       \return probability [0,1]
     */
-    const double & catchProbability() const { return M_catch_probability; }
+    double catchProbability() const
+      {
+          return M_catch_probability;
+      }
 
     /*!
       \brief get estimated tackle success probability
       \return probability [0,1]
     */
-    const double & tackleProbability() const { return M_tackle_probability; }
+    double tackleProbability() const
+      {
+          return M_tackle_probability;
+      }
 
     /*!
       \brief get estimated foul success probability
       \return probability [0,1]
     */
-    const double & foulProbability() const { return M_foul_probability; }
+    double foulProbability() const
+      {
+          return M_foul_probability;
+      }
 
 
     ///////////////////////////////////////////////////////////////
@@ -672,6 +672,11 @@ public:
       {
           M_pointto_pos = point;
           M_last_pointto_time = done_time;
+          if ( pos().isValid() )
+          {
+              M_pointto_angle = ( point - pos() ).th();
+              M_pointto_count = 0;
+          }
       }
 
     /*!

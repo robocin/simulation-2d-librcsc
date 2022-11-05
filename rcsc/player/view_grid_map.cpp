@@ -109,6 +109,7 @@ grid_y_index( const double & y )
     return bound( 0, iy, ViewGridMap::GRID_Y_SIZE );
 }
 
+#if 0
 inline
 int
 grid_index( const Vector2D & pos )
@@ -133,6 +134,7 @@ grid_center( const int idx )
     return Vector2D( ix * ViewGridMap::GRID_LENGTH + ViewGridMap::PITCH_MIN_X,
                      iy * ViewGridMap::GRID_LENGTH + ViewGridMap::PITCH_MIN_Y );
 }
+#endif
 
 inline
 Vector2D
@@ -238,12 +240,9 @@ void
 ViewGridMap::incrementAll()
 {
 #ifdef USE_VECTOR
-    const std::vector< int >::iterator end = M_impl->grid_map_.end();
-    for ( std::vector< int >::iterator v = M_impl->grid_map_.begin();
-          v != end;
-          ++v )
+    for ( int & v : M_impl->grid_map_ )
     {
-        *v += 1;
+        v += 1;
     }
 #else
     for ( int x = 0; x < ViewGridMap::GRID_X_SIZE; ++x )
