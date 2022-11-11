@@ -35,6 +35,8 @@
 #include <rcsc/game_time.h>
 #include <rcsc/types.h>
 
+#include <vector>
+
 namespace rcsc {
 
 class GameMode;
@@ -69,8 +71,8 @@ private:
     //! current kick kicker's side id
     int M_kick_taker_side;
 
-    //! current kick kicker's uniform number
-    int M_kick_taker_unum;
+    //! kick taker order
+    int M_kick_taker_order[11];
 
 public:
     /*!
@@ -148,11 +150,7 @@ public:
       \return checked result.
      */
     bool isKickTaker( const SideID side,
-                      const int unum ) const
-      {
-          return M_kick_taker_side == side
-              && M_kick_taker_unum == unum;
-      }
+                      const int unum ) const;
 
     /*!
       \brief update status using refeee message
@@ -166,14 +164,10 @@ public:
 
     /*!
       \brief set kick taker's uniform number
+      \param order order number [0,10]
       \param unum uniform number
      */
-    void setKickTaker( const SideID side,
-                       const int unum )
-      {
-          M_kick_taker_side = side;
-          M_kick_taker_unum = unum;
-      }
+    void setKickTakerOrder( const std::vector< int > & unum_set );
 
 };
 

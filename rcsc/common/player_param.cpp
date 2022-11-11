@@ -66,28 +66,35 @@ const double PlayerParam::DEFAULT_PLAYER_SPEED_MAX_DELTA_MIN = 0.0;
 const double PlayerParam::DEFAULT_PLAYER_SPEED_MAX_DELTA_MAX = 0.0;
 const double PlayerParam::DEFAULT_STAMINA_INC_MAX_DELTA_FACTOR = 0.0;
 
-const double PlayerParam::DEFAULT_PLAYER_DECAY_DELTA_MIN = 0.0;
-const double PlayerParam::DEFAULT_PLAYER_DECAY_DELTA_MAX = 0.2;
+// [13.0.0] -0.05 -> -0.1
+// [12.0.0] 0.0 -> -0.05
+const double PlayerParam::DEFAULT_PLAYER_DECAY_DELTA_MIN = -0.1;
+const double PlayerParam::DEFAULT_PLAYER_DECAY_DELTA_MAX = 0.1; // [12.0.0] 0.2 -> 0.1
 const double PlayerParam::DEFAULT_INERTIA_MOMENT_DELTA_FACTOR = 25.0;
 
 const double PlayerParam::DEFAULT_DASH_POWER_RATE_DELTA_MIN = 0.0;
 const double PlayerParam::DEFAULT_DASH_POWER_RATE_DELTA_MAX = 0.0;
 const double PlayerParam::DEFAULT_PLAYER_SIZE_DELTA_FACTOR = -100.0;
 
-const double PlayerParam::DEFAULT_KICKABLE_MARGIN_DELTA_MIN = 0.0;
-const double PlayerParam::DEFAULT_KICKABLE_MARGIN_DELTA_MAX = 0.2;
-const double PlayerParam::DEFAULT_KICK_RAND_DELTA_FACTOR = 0.5;
+const double PlayerParam::DEFAULT_KICKABLE_MARGIN_DELTA_MIN = -0.1; // [12.0.0] 0.0 -> -0.1;
+const double PlayerParam::DEFAULT_KICKABLE_MARGIN_DELTA_MAX = 0.1; // [12.0.0 ]0.2 -> 0.1
+const double PlayerParam::DEFAULT_KICK_RAND_DELTA_FACTOR = 1.0; // [12.0.0] 0.5 -> 1.0
 
 const double PlayerParam::DEFAULT_EXTRA_STAMINA_DELTA_MIN = 0.0;
-const double PlayerParam::DEFAULT_EXTRA_STAMINA_DELTA_MAX = 100.0;
-const double PlayerParam::DEFAULT_EFFORT_MAX_DELTA_FACTOR = -0.002;
-const double PlayerParam::DEFAULT_EFFORT_MIN_DELTA_FACTOR = -0.002;
+const double PlayerParam::DEFAULT_EXTRA_STAMINA_DELTA_MAX = 50.0; // [13.0.0] 100.0 -> 50.0
+const double PlayerParam::DEFAULT_EFFORT_MAX_DELTA_FACTOR = -0.004; // [13.0.0] -0.002 -> -0.004
+const double PlayerParam::DEFAULT_EFFORT_MIN_DELTA_FACTOR = -0.004; // [13.0.0] -0.002 -> -0.004
 
 const int    PlayerParam::DEFAULT_RANDOM_SEED = -1; // negative means generate a new seed
 
-const double PlayerParam::DEFAULT_NEW_DASH_POWER_RATE_DELTA_MIN = 0.0;
-const double PlayerParam::DEFAULT_NEW_DASH_POWER_RATE_DELTA_MAX = 0.002;
-const double PlayerParam::DEFAULT_NEW_STAMINA_INC_MAX_DELTA_FACTOR = -10000.0;
+// [13.0.0] -0.0005 -> -0.0012
+// [12.0.0]  0      -> -0.0005
+const double PlayerParam::DEFAULT_NEW_DASH_POWER_RATE_DELTA_MIN = -0.0012;
+// [13.0.0] 0.0015 -> 0.0008
+// [12.0.0] 0.002  -> 0.0015
+const double PlayerParam::DEFAULT_NEW_DASH_POWER_RATE_DELTA_MAX = 0.0008;
+// [12.0.0] -10000.0 -> -6000.0
+const double PlayerParam::DEFAULT_NEW_STAMINA_INC_MAX_DELTA_FACTOR = -6000.0;
 
 // v14
 const double PlayerParam::DEFAULT_KICK_POWER_RATE_DELTA_MIN = 0.0;
@@ -413,19 +420,16 @@ PlayerParam::convertTo( rcg::player_params_t & to ) const
 
 */
 std::string
-PlayerParam::toStr() const
+PlayerParam::toServerString() const
 {
     std::ostringstream os;
 
     os << "(player_param ";
 
-    const std::map< std::string, ParamPtr >::const_iterator end = M_param_map->longNameMap().end();
-    for ( std::map< std::string, ParamPtr >::const_iterator it = M_param_map->longNameMap().begin();
-          it != end;
-          ++it )
+    for ( const auto & m : M_param_map->longNameMap() )
     {
-        os << '(' << it->second->longName() << ' ';
-        it->second->printValue( os );
+        os << '(' << m.second->longName() << ' ';
+        m.second->printValue( os );
         os << ')';
     }
 

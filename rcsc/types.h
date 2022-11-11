@@ -51,6 +51,28 @@ enum SideID {
 };
 
 /*!
+  \breif get side information character
+  \return 'l', 'r' or 'n'
+ */
+inline
+char
+side_char( SideID s )
+{
+    return ( s == LEFT ? 'l' : s == RIGHT ? 'r' : 'n' );
+}
+
+/*!
+  \breif get side information string
+  \return "left", "right" or "neutral"
+ */
+inline
+const char *
+side_str( SideID s )
+{
+    return ( s == LEFT ? "left" : s == RIGHT ? "right" : "neutral" );
+}
+
+/*!
   \enum MarkerID
   \brief marker type defintiion
  */
@@ -157,6 +179,8 @@ enum PlayMode {
     PM_PenaltyMiss_Right,
     PM_PenaltyScore_Left,
     PM_PenaltyScore_Right,
+    PM_Illegal_Defense_Left, // after rcssserver-16.0.0
+    PM_Illegal_Defense_Right,
     PM_MAX
 };
 
@@ -211,9 +235,8 @@ enum PlayMode {
       "penalty_miss_r", \
       "penalty_score_l", \
       "penalty_score_r", \
-      "", \
-      "", \
-      "", \
+      "illegal_defense_l", \
+      "illegal_defense_r", \
       "", \
       "" \
 }

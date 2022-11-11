@@ -36,7 +36,6 @@
 #include <rcsc/types.h>
 
 #include <string>
-#include <map>
 #include <utility>
 
 namespace rcsc {
@@ -86,7 +85,9 @@ public:
         PenaltyMiss_, // Left | Right
         PenaltyScore_, // Left | Right
 
-        // these are not a real playmode
+        IllegalDefense_, // Left | Right
+
+        // not a real playmode
         PenaltyOnfield_, // next real playmode is PenaltySetup_
         PenaltyFoul_,    // next real playmode is PenaltyMiss_ or PenaltyScore_
         //PenaltyWinner_,  // next real playmode is TimeOver
@@ -175,7 +176,7 @@ public:
     "red_card_SIDE_UNUM"
     */
 
-    typedef std::pair< Type, rcsc::SideID > Pair; //!< alias of the pair of playmode type and side type
+    typedef std::pair< Type, SideID > Pair; //!< alias of the pair of playmode type and side type
 
 private:
 
@@ -198,6 +199,15 @@ public:
     GameMode();
 
     /*!
+      \brief init member variables with arguments
+    */
+    GameMode( Type type,
+              SideID side,
+              const GameTime & time,
+              int score_left,
+              int score_right );
+
+    /*!
       \brief analyze playmode string and update internal status
       \param mode_str playmode string sent from server
       \param current current game time
@@ -206,6 +216,14 @@ public:
     */
     bool update( const std::string & mode_str,
                  const GameTime & current );
+
+    /*!
+      \brief set scores directly.
+      \param score_l left team score
+      \param score_r right team score
+     */
+    void setScore( const int score_l,
+                   const int score_r );
 
 private:
     /*!
@@ -221,8 +239,7 @@ public:
       \brief get last update time
       \return const reference to the GameTime object
      */
-    const
-    GameTime & time() const
+    const GameTime & time() const
       {
           return M_time;
       }
@@ -317,6 +334,12 @@ public:
       \return rcssserver playmode Id
     */
     PlayMode getServerPlayMode() const;
+
+    /*!
+      \brief get playmode string
+      \return const char pointer
+     */
+    const char * toCString() const;
 
     /*!
       \brief print current playmode string to stream

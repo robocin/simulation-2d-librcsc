@@ -40,14 +40,16 @@
 #include "audio_sensor.h"
 #include "fullstate_sensor.h"
 
-#include "freeform_parser.h"
 #include "player_command.h"
 #include "say_message_builder.h"
 #include "soccer_action.h"
 #include "soccer_intention.h"
 
+#include <rcsc/common/audio_codec.h>
 #include <rcsc/common/audio_memory.h>
-#include <rcsc/common/basic_client.h>
+#include <rcsc/common/abstract_client.h>
+#include <rcsc/common/online_client.h>
+#include <rcsc/common/offline_client.h>
 #include <rcsc/common/logger.h>
 #include <rcsc/common/player_param.h>
 #include <rcsc/common/player_type.h>
@@ -60,9 +62,7 @@
 #include <rcsc/game_mode.h>
 #include <rcsc/timer.h>
 #include <rcsc/version.h>
-#include <rcsc/action/body_go_to_point2009.h>
-
-#include <boost/lexical_cast.hpp>
+#include <rcsc/action/body_go_to_point.h>
 
 #include <sstream>
 #include <cstdio>
@@ -113,6 +113,9 @@ struct PlayerAgent::Impl {
     //! fullstate info
     FullstateSensor fullstate_;
 
+    //! clang parser
+    CLangParser clang_;
+
     //! time when sense_body is received
     TimeStamp body_time_stamp_;
     //! time when see is received
@@ -125,16 +128,16 @@ struct PlayerAgent::Impl {
     int see_timings_[11];
 
     //! pointer to reserved action
-    boost::shared_ptr< ArmAction > arm_action_;
+    std::shared_ptr< ArmAction > arm_action_;
 
     //! pointer to reserved action
-    boost::shared_ptr< NeckAction > neck_action_;
+    std::shared_ptr< NeckAction > neck_action_;
 
     //! pointer to reserved action
-    boost::shared_ptr< ViewAction > view_action_;
+    std::shared_ptr< ViewAction > view_action_;
 
     //! intention queue
-    boost::shared_ptr< SoccerIntention > intention_;
+    SoccerIntention::Ptr intention_;
 
     /*!
       \brief initialize all members
@@ -149,7 +152,10 @@ struct PlayerAgent::Impl {
           clang_min_( 0 ),
           clang_max_( 0 )
       {
-          for ( int i = 0; i < 11; ++i ) see_timings_[i] = 0;
+          for ( int i = 0; i < 11; ++i )
+          {
+              see_timings_[i] = 0;
+          }
       }
 
 
@@ -176,7 +182,7 @@ struct PlayerAgent::Impl {
     /*!
       \brief send init or reconnect command to server
 
-      init commad is sent in BasicClient's run() method
+      init commad is sent in AbstractClient's run() method
       Do NOT call this method by yourself!
     */
     void sendInitCommand();
@@ -442,7 +448,7 @@ PlayerAgent::Impl::updateCurrentTime( const long & new_time,
                 dlog.addText( Logger::LEVEL_ANY,
                               "CYCLE %ld-%ld --------------------"
                               " stopped time was updated by sense_body",
-                              current_time_.cycle(), current_time_.stopped() + 1 );
+                              current_time_.cycle(), current_time_.stopped() );
                 if ( last_decision_time_ != old_time )
                 {
                     if ( old_time.stopped() == 0 )
@@ -567,9 +573,9 @@ PlayerAgent::Impl::isDecisionTiming( const long & msec_from_sense,
         return true;
     }
 
-    int wait_thr = ( see_state_.isSynch()
-                     ? agent_.config().waitTimeThrSynchView()
-                     : agent_.config().waitTimeThrNoSynchView() );
+    const int wait_thr = ( see_state_.isSynch()
+                           ? agent_.config().waitTimeThrSynchView()
+                           : agent_.config().waitTimeThrNoSynchView() );
 
     // already done in sense_body received cycle.
     // When referee message is sent before sense_body,
@@ -587,6 +593,17 @@ PlayerAgent::Impl::isDecisionTiming( const long & msec_from_sense,
                       agent_.world().senseBodyTime().cycle(),
                       agent_.world().senseBodyTime().stopped() );
         return false;
+    }
+
+    // synch_see mode, and big see_offset
+    if ( SeeState::synch_see_mode()
+         && ServerParam::i().synchSeeOffset() > wait_thr
+         && msec_from_sense >= 0 )
+    {
+        dlog.addText( Logger::SYSTEM,
+                      __FILE__" (isDicisionTiming) [true] synch_see mode. offset(%d) > threshold(%d)",
+                      ServerParam::i().synchSeeOffset(), wait_thr );
+        return true;
     }
 
     // no see info during the current cycle.
@@ -631,12 +648,12 @@ PlayerAgent::Impl::isDecisionTiming( const long & msec_from_sense,
 
  */
 PlayerAgent::PlayerAgent()
-    : SoccerAgent()
-    , M_impl( new PlayerAgent::Impl( *this ) )
-    , M_debug_client()
-    , M_worldmodel()
-    , M_fullstate_worldmodel()
-    , M_effector( *this )
+    : SoccerAgent(),
+      M_impl( new PlayerAgent::Impl( *this ) ),
+      M_debug_client(),
+      M_worldmodel(),
+      M_fullstate_worldmodel(),
+      M_effector( *this )
 {
     // std::cerr << "construct player" << std::endl;
 
@@ -650,6 +667,28 @@ PlayerAgent::PlayerAgent()
 PlayerAgent::~PlayerAgent()
 {
     //cerr << "delete PlayerAgent" << endl;
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+std::shared_ptr< AbstractClient >
+PlayerAgent::createConsoleClient()
+{
+    std::shared_ptr< AbstractClient > ptr;
+
+    if ( 1 <= config().offlineClientNumber()
+         && config().offlineClientNumber() <= 11 )
+    {
+        ptr = std::shared_ptr< AbstractClient >( new OfflineClient() );
+    }
+    else
+    {
+        ptr = std::shared_ptr< AbstractClient >( new OnlineClient() );
+    }
+
+    return ptr;
 }
 
 /*-------------------------------------------------------------------*/
@@ -736,21 +775,13 @@ PlayerAgent::seeTimeStamp() const
 bool
 PlayerAgent::initImpl( CmdLineParser & cmd_parser )
 {
-    if ( ! M_client )
-    {
-        return false;
-    }
-
     bool help = false;
     std::string player_config_file;
 
     ParamMap system_param_map( "System options" );
     system_param_map.add()
-        ( "help" , "", BoolSwitch( &help ), "print help message.")
+        ( "help", "", BoolSwitch( &help ), "print help message.")
         ( "player-config", "", &player_config_file, "specifies player config file." );
-
-    ParamMap player_param_map( "Player options" );
-    M_config.createParamMap( player_param_map );
 
     // analyze command line for system options.
     cmd_parser.parse( system_param_map );
@@ -758,22 +789,22 @@ PlayerAgent::initImpl( CmdLineParser & cmd_parser )
     {
         std::cout << copyright() << std::endl;
         system_param_map.printHelp( std::cout );
-        player_param_map.printHelp( std::cout );
+        config().printHelp( std::cout );
         return false;
     }
 
-    // analyze config file for PlayerConfig
+    // parse config file
     if ( ! player_config_file.empty() )
     {
         ConfFileParser conf_parser( player_config_file.c_str() );
-        conf_parser.parse( player_param_map );
+        M_config.parse( conf_parser );
     }
 
-    // analyze command line for player options.
-    cmd_parser.parse( player_param_map );
+    // parse command line
+    M_config.parse( cmd_parser );
 
     if ( config().version() < 8.0
-         || 15.0 <= config().version() )
+         || 18.0 <= config().version() )
     {
         std::cerr << "Unsupported client version: " << config().version()
                   << std::endl;
@@ -794,11 +825,7 @@ PlayerAgent::initImpl( CmdLineParser & cmd_parser )
                                  config().playerVelCountThr(),
                                  config().playerFaceCountThr() );
 
-    if ( 1 <= config().offlineClientNumber()
-         && config().offlineClientNumber() <= 11 )
-    {
-        M_client->setClientMode( BasicClient::OFFLINE );
-    }
+    AudioCodec::instance().createMap( config().audioShift() );
 
     return true;
 }
@@ -824,8 +851,7 @@ PlayerAgent::handleStart()
     }
 
     if ( ! M_client->connectTo( config().host().c_str(),
-                                config().port(),
-                                static_cast< long >( config().intervalMSec() ) ) )
+                                config().port() ) )
     {
         std::cerr << config().teamName()
                   << ": ***ERROR*** Failed to connect to ["
@@ -835,6 +861,8 @@ PlayerAgent::handleStart()
         M_client->setServerAlive( false );
         return false;
     }
+
+    M_client->setIntervalMSec( config().intervalMSec() );
 
     M_impl->sendInitCommand();
     return true;
@@ -880,7 +908,7 @@ PlayerAgent::handleMessage()
     GameTime start_time = M_impl->current_time_;
 
     // receive and analyze message
-    while ( M_client->recvMessage() > 0 )
+    while ( M_client->receiveMessage() > 0 )
     {
         ++counter;
         parse( M_client->message() );
@@ -943,7 +971,7 @@ PlayerAgent::handleMessageOffline()
         return;
     }
 
-    if ( M_client->recvMessage() > 0 )
+    if ( M_client->receiveMessage() > 0 )
     {
         parse( M_client->message() );
     }
@@ -951,7 +979,7 @@ PlayerAgent::handleMessageOffline()
     if ( M_impl->think_received_ )
     {
         dlog.addText( Logger::SYSTEM,
-                      __FILE__" (handleMessaegOffline) Got think message: decide action" );
+                      __FILE__" (handleMessageOffline) Got think message: decide action" );
 #if 0
         std::cout << world().teamName() << ' '
                   << world().self().unum() << ": "
@@ -979,8 +1007,7 @@ PlayerAgent::handleTimeout( const int timeout_count,
     }
 
     TimeStamp cur_time;
-    cur_time.setCurrent();
-    long msec_from_sense = -1;
+    std::int64_t msec_from_sense = -1;
     /*
       std::cerr << "cur_sec = " << cur_time.sec()
       << "  cur_usec = " << cur_time.usec()
@@ -988,9 +1015,9 @@ PlayerAgent::handleTimeout( const int timeout_count,
       << "  sense_usec=" << M_impl->body_time_stamp_.usec()
       << std::endl;
     */
-    if ( M_impl->body_time_stamp_.sec() > 0 )
+    if ( M_impl->body_time_stamp_.isValid() )
     {
-        msec_from_sense = cur_time.getMSecDiffFrom( M_impl->body_time_stamp_ );
+        msec_from_sense = cur_time.elapsedSince( M_impl->body_time_stamp_ );
     }
 
     dlog.addText( Logger::SYSTEM,
@@ -1012,17 +1039,14 @@ PlayerAgent::handleTimeout( const int timeout_count,
     }
 
     // check alarm count etc...
-    if ( ! M_impl->isDecisionTiming( msec_from_sense, timeout_count ) )
+    if ( M_impl->isDecisionTiming( msec_from_sense, timeout_count ) )
     {
-        return;
+        // start decision
+        dlog.addText( Logger::SYSTEM,
+                      "----- TIMEOUT DECISION !! [%ld]ms from sense_body",
+                      msec_from_sense / ServerParam::i().slowDownFactor() );
+        action();
     }
-
-    // start decision
-    dlog.addText( Logger::SYSTEM,
-                  "----- TIMEOUT DECISION !! [%ld]ms from sense_body",
-                  msec_from_sense / ServerParam::i().slowDownFactor() );
-
-    action();
 }
 
 /*-------------------------------------------------------------------*/
@@ -1040,9 +1064,17 @@ PlayerAgent::handleExit()
 
  */
 void
-PlayerAgent::addSayMessageParser( boost::shared_ptr< SayMessageParser > parser )
+PlayerAgent::addSayMessageParser( SayMessageParser * parser )
 {
-    M_impl->audio_.addParser( parser );
+    if ( ! parser )
+    {
+        std::cerr << __FILE__ << ' ' << __LINE__
+                  << ": NULL SayMessageParser." << std::endl;
+        return;
+    }
+
+    SayMessageParser::Ptr ptr( parser );
+    M_impl->audio_.addSayMessageParser( ptr );
 }
 
 /*-------------------------------------------------------------------*/
@@ -1052,7 +1084,7 @@ PlayerAgent::addSayMessageParser( boost::shared_ptr< SayMessageParser > parser )
 void
 PlayerAgent::removeSayMessageParser( const char header )
 {
-    M_impl->audio_.removeParser( header );
+    M_impl->audio_.removeSayMessageParser( header );
 }
 
 /*-------------------------------------------------------------------*/
@@ -1060,9 +1092,17 @@ PlayerAgent::removeSayMessageParser( const char header )
 
  */
 void
-PlayerAgent::setFreeformParser( boost::shared_ptr< FreeformParser > parser )
+PlayerAgent::addFreeformMessageParser( FreeformMessageParser * parser )
 {
-    M_impl->audio_.setFreeformParser( parser );
+    if ( ! parser )
+    {
+        std::cerr << __FILE__ << ' ' << __LINE__
+                  << ": NULL FreeformMessageParser." << std::endl;
+        return;
+    }
+
+    FreeformMessageParser::Ptr ptr( parser );
+    M_impl->audio_.addFreeformMessageParser( ptr );
 }
 
 /*-------------------------------------------------------------------*/
@@ -1070,19 +1110,9 @@ PlayerAgent::setFreeformParser( boost::shared_ptr< FreeformParser > parser )
 
  */
 void
-PlayerAgent::addPreActionCallback(  const PeriodicCallback::Ptr & ptr )
+PlayerAgent::removeFreeformMessageParser( const std::string & type )
 {
-    M_pre_action_callbacks.push_back( ptr );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
- */
-void
-PlayerAgent::addPostActionCallback( const PeriodicCallback::Ptr & ptr )
-{
-    M_post_action_callbacks.push_back( ptr );
+    M_impl->audio_.removeFreeformMessageParser( type );
 }
 
 /*-------------------------------------------------------------------*/
@@ -1120,7 +1150,8 @@ PlayerAgent::finalize()
 void
 PlayerAgent::Impl::initDebug()
 {
-    if ( agent_.M_client->clientMode() == BasicClient::ONLINE )
+    if ( agent_.config().offlineClientNumber() < 1
+         || 11 < agent_.config().offlineClientNumber() ) // == online mode
     {
         if ( agent_.config().debugServerConnect() )
         {
@@ -1167,13 +1198,14 @@ PlayerAgent::Impl::openOfflineLog()
 
     filepath << agent_.config().teamName() << '-';
 
-    if ( agent_.M_client->clientMode() == BasicClient::ONLINE )
+    if ( 1 <= agent_.config().offlineClientNumber()
+         && agent_.config().offlineClientNumber() <= 11 )
     {
-        filepath << agent_.world().self().unum();
+        filepath << agent_.config().offlineClientNumber();
     }
     else
     {
-        filepath << agent_.config().offlineClientNumber();
+        filepath << agent_.world().self().unum();
     }
 
     filepath << agent_.config().offlineLogExt();
@@ -1244,7 +1276,7 @@ PlayerAgent::Impl::sendInitCommand()
         PlayerInitCommand com( agent_.config().teamName(),
                                agent_.config().version(),
                                agent_.config().goalie() );
-        com.toStr( ostr );
+        com.toCommandString( ostr );
     }
     else
     {
@@ -1254,7 +1286,7 @@ PlayerAgent::Impl::sendInitCommand()
         // reconnect
         PlayerReconnectCommand com( agent_.config().teamName(),
                                     agent_.config().reconnectNumber() );
-        com.toStr( ostr );
+        com.toCommandString( ostr );
 
     }
 
@@ -1289,7 +1321,7 @@ PlayerAgent::Impl::sendSettingCommands()
         // off, opp
         PlayerEarCommand opp_ear_com( PlayerEarCommand::OFF,
                                       PlayerEarCommand::OPP );
-        opp_ear_com.toStr( ostr );
+        opp_ear_com.toCommandString( ostr );
     }
 
     if ( ! agent_.config().useCommunication() )
@@ -1297,7 +1329,7 @@ PlayerAgent::Impl::sendSettingCommands()
         // off, our
         PlayerEarCommand our_ear_com( PlayerEarCommand::OFF,
                                       PlayerEarCommand::OUR );
-        our_ear_com.toStr( ostr );
+        our_ear_com.toCommandString( ostr );
     }
 
     // set clang version
@@ -1307,7 +1339,7 @@ PlayerAgent::Impl::sendSettingCommands()
     {
         PlayerCLangCommand com( agent_.config().clangMin(),
                                 agent_.config().clangMax() );
-        com.toStr( ostr );
+        com.toCommandString( ostr );
     }
 
     // set compression level
@@ -1315,7 +1347,7 @@ PlayerAgent::Impl::sendSettingCommands()
          && agent_.config().compression() <= 9 )
     {
         PlayerCompressionCommand com( agent_.config().compression() );
-        com.toStr( ostr );
+        com.toCommandString( ostr );
     }
 
     if ( ! ostr.str().empty() )
@@ -1337,7 +1369,7 @@ PlayerAgent::Impl::sendByeCommand()
     PlayerByeCommand com;
     std::ostringstream ostr;
 
-    com.toStr( ostr );
+    com.toCommandString( ostr );
     agent_.M_client->sendMessage( ostr.str().c_str() );
 
     agent_.M_client->setServerAlive( false );
@@ -1378,6 +1410,8 @@ PlayerAgent::Impl::setDebugFlags()
     dlog.setLogFlag( &current_time_, Logger::COMMUNICATION, c.debugCommunication() );
     dlog.setLogFlag( &current_time_, Logger::ANALYZER, c.debugAnalyzer() );
     dlog.setLogFlag( &current_time_, Logger::ACTION_CHAIN, c.debugActionChain() );
+
+    dlog.setLogFlag( &current_time_, Logger::TRAINING, c.debugTraining() );
 }
 
 /*-------------------------------------------------------------------*/
@@ -1489,11 +1523,12 @@ PlayerAgent::Impl::analyzeCycle( const char * msg,
 void
 PlayerAgent::Impl::analyzeSee( const char * msg )
 {
-    see_time_stamp_.setCurrent();
-    long msec_from_sense = -1;
-    if ( body_time_stamp_.sec() > 0 )
+    std::int64_t msec_from_sense = -1;
+
+    see_time_stamp_.setNow();
+    if ( body_time_stamp_.isValid() )
     {
-        msec_from_sense = see_time_stamp_.getMSecDiffFrom( body_time_stamp_ );
+        msec_from_sense = see_time_stamp_.elapsedSince( body_time_stamp_ );
 #ifdef PROFILE_SEE
         if ( see_state_.isSynch() )
         {
@@ -1519,10 +1554,10 @@ PlayerAgent::Impl::analyzeSee( const char * msg )
 
     // parse see info
     visual_.parse( msg,
-                   agent_.config().teamName().c_str(),
+                   agent_.config().teamName(),
                    agent_.config().version(),
                    current_time_ );
-    //visual_.print( std::cout );
+    //visual_.toString( std::cout );
 
     // update see timing status
     see_state_.updateBySee( current_time_,
@@ -1569,7 +1604,7 @@ PlayerAgent::Impl::analyzeSee( const char * msg )
 void
 PlayerAgent::Impl::analyzeSenseBody( const char * msg )
 {
-    body_time_stamp_.setCurrent();
+    body_time_stamp_.setNow();
 
     // parse cycle info
     if ( ! analyzeCycle( msg, true ) )
@@ -1860,6 +1895,8 @@ PlayerAgent::Impl::analyzeHearOurCoach( const char * msg )
                   "===receive say message from our coach" );
 
     audio_.parseCoachMessage( msg, current_time_ );
+
+    agent_.handleOnlineCoachAudio();
 }
 
 /*-------------------------------------------------------------------*/
@@ -1902,12 +1939,9 @@ PlayerAgent::Impl::analyzeFullstate( const char * msg )
                   "===receive fullstate" );
 
     fullstate_.parse( msg,
+                      agent_.world().ourSide(),
                       agent_.config().version(),
                       current_time_ );
-    if ( agent_.world().ourSide() == RIGHT )
-    {
-        fullstate_.reverse();
-    }
 
     if ( agent_.config().debugFullstate() )
     {
@@ -1967,12 +2001,11 @@ PlayerAgent::Impl::analyzeServerParam( const char * msg )
     ServerParam::instance().parse( msg, agent_.config().version() );
     PlayerTypeSet::instance().resetDefaultType();
 
-    agent_.M_worldmodel.setOurPlayerType( agent_.world().self().unum(),
-                                          Hetero_Default );
+    agent_.M_worldmodel.setServerParam();
+
     if ( agent_.config().debugFullstate() )
     {
-        agent_.M_fullstate_worldmodel.setOurPlayerType( agent_.fullstateWorld().self().unum(),
-                                                        Hetero_Default );
+        agent_.M_fullstate_worldmodel.setServerParam();
     }
 
     // update alarm interval
@@ -2070,18 +2103,18 @@ PlayerAgent::Impl::analyzeInit( const char * msg )
         agent_.M_config.setPlayerNumber( unum );
     }
 
-    if ( ! agent_.M_worldmodel.initTeamInfo( agent_.config().teamName(),
-                                             side, unum,
-                                             agent_.config().goalie() ) )
+    if ( ! agent_.M_worldmodel.init( agent_.config().teamName(),
+                                     side, unum,
+                                     agent_.config().goalie() ) )
     {
         agent_.M_client->setServerAlive( false );
         return;
     }
 
     if ( agent_.config().debugFullstate()
-         && ! agent_.M_fullstate_worldmodel.initTeamInfo( agent_.config().teamName(),
-                                                          side, unum,
-                                                          agent_.config().goalie() ) )
+         && ! agent_.M_fullstate_worldmodel.init( agent_.config().teamName(),
+                                                  side, unum,
+                                                  agent_.config().goalie() ) )
     {
         agent_.M_client->setServerAlive( false );
         return;
@@ -2098,6 +2131,11 @@ PlayerAgent::Impl::analyzeInit( const char * msg )
     //
 
     sendSettingCommands();
+
+    //
+    // call init message event handler
+    //
+    agent_.handleInitMessage();
 }
 
 /*-------------------------------------------------------------------*/
@@ -2268,7 +2306,7 @@ PlayerAgent::Impl::analyzeWarning( const char * msg )
 void
 PlayerAgent::action()
 {
-    MSecTimer timer;
+    Timer timer;
     dlog.addText( Logger::SYSTEM,
                   __FILE__" (action) start" );
 
@@ -2278,36 +2316,28 @@ PlayerAgent::action()
         M_client->printOfflineThink();
     }
 
-    //
-    // pre callback
-    //
-    std::for_each( M_pre_action_callbacks.begin(),
-                   M_pre_action_callbacks.end(),
-                   &PeriodicCallback::call_execute );
-    M_pre_action_callbacks.erase( std::remove_if( M_pre_action_callbacks.begin(),
-                                                  M_pre_action_callbacks.end(),
-                                                  &PeriodicCallback::is_finished ),
-                                  M_pre_action_callbacks.end() );
-
-    //
-    // handle action start event
-    //
-    handleActionStart();
-
     // check see synchronization
     if ( M_impl->see_state_.isSynch()
          && M_impl->see_state_.cyclesTillNextSee() == 0
          && world().seeTime() != M_impl->current_time_ )
     {
-        dlog.addText( Logger::SYSTEM,
-                      __FILE__" (action) missed see synch. action without see" );
-        std::cout << world().teamName() << ' '
-                  << world().self().unum() << ": "
-                  << world().time()
-                  << " missed see synch. action without see" << std::endl;
+        if ( SeeState::synch_see_mode()
+             && ServerParam::i().synchSeeOffset() > ServerParam::i().synchOffset() )
+        {
+            // no problem?
+        }
+        else
+        {
+            dlog.addText( Logger::SYSTEM,
+                          __FILE__" (action) missed see synch. action without see" );
+            std::cout << world().teamName() << ' '
+                      << world().self().unum() << ": "
+                      << world().time()
+                      << " missed see synch. action without see" << std::endl;
 
-        // set synch timing to illegal.
-        M_impl->see_state_.setLastSeeTiming( SeeState::TIME_NOSYNCH );
+            // set synch timing to illegal.
+            M_impl->see_state_.setLastSeeTiming( SeeState::TIME_NOSYNCH );
+        }
     }
 
     // ------------------------------------------------------------------------
@@ -2324,6 +2354,11 @@ PlayerAgent::action()
 
     // reset last action effect
     M_effector.reset();
+
+    //
+    // handle action start event
+    //
+    handleActionStart();
 
     // ------------------------------------------------------------------------
     // decide action
@@ -2343,7 +2378,7 @@ PlayerAgent::action()
     // ------------------------------------------------------------------------
     // set command effect. these must be called before command composing.
     // set self view mode, pointto and attentionto info.
-    M_worldmodel.setCommandEffect( effector() );
+    M_worldmodel.updateJustAfterDecision( effector() );
     // set cycles till next see, update estimated next see arrival timing
     M_impl->see_state_.setViewMode( world().self().viewWidth(),
                                     world().self().viewQuality() );
@@ -2366,26 +2401,16 @@ PlayerAgent::action()
     // ------------------------------------------------------------------------
     // update last decision time
     M_impl->last_decision_time_ = M_impl->current_time_;
+    double elapsed = timer.elapsedReal();
 
     dlog.addText( Logger::SYSTEM,
-                  __FILE__" (action) elapsed %lf [ms]",
-                  timer.elapsedReal() );
+                  __FILE__" (action) elapsed %lf [ms]", elapsed );
+    M_debug_client.addMessage( "%.0fms", elapsed );
 
     //
     // handle action end event
     //
     handleActionEnd();
-
-    //
-    // post callback
-    //
-    std::for_each( M_post_action_callbacks.begin(),
-                   M_post_action_callbacks.end(),
-                   &PeriodicCallback::call_execute );
-    M_post_action_callbacks.erase( std::remove_if( M_post_action_callbacks.begin(),
-                                                   M_post_action_callbacks.end(),
-                                                   &PeriodicCallback::is_finished ),
-                                   M_post_action_callbacks.end() );
 
     //
     // debugger output
@@ -2403,7 +2428,8 @@ PlayerAgent::action()
 void
 PlayerAgent::Impl::doArmAction()
 {
-    if ( arm_action_ )
+    if ( arm_action_
+         && agent_.world().self().armMovable() == 0 )
     {
         arm_action_->execute( &agent_ );
         arm_action_.reset();
@@ -2421,7 +2447,7 @@ PlayerAgent::Impl::doViewAction()
          && agent_.world().gameMode().type() != GameMode::PlayOn )
     {
         dlog.addText( Logger::SYSTEM,
-                      __FILE__" (doViewAction) not play_on. system must be adjust see synch..." );
+                      __FILE__" (doViewAction) *no sync and no play_on* agent need to synchronize see message." );
         return;
     }
 
@@ -2474,11 +2500,12 @@ PlayerAgent::Impl::adjustSeeSynchNormalMode()
         // set synchronized see timing
         see_state_.setLastSeeTiming( SeeState::TIME_0_00 );
 
-        PlayerChangeViewCommand com( ViewWidth::NORMAL, ViewQuality::HIGH );
         std::ostringstream ostr;
-        com.toStr( ostr );
-        agent_.M_client->sendMessage( ostr.str().c_str() );
 
+        PlayerChangeViewCommand com( ViewWidth::NORMAL, ViewQuality::HIGH );
+        com.toCommandString( ostr );
+
+        agent_.M_client->sendMessage( ostr.str().c_str() );
         dlog.addText( Logger::SYSTEM,
                       "---- send[%s] see sync",
                       ostr.str().c_str() );
@@ -2502,11 +2529,12 @@ PlayerAgent::Impl::adjustSeeSynchNormalMode()
     {
         if ( agent_.world().self().viewQuality().type() == ViewQuality::LOW )
         {
-            PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::HIGH );
             std::ostringstream ostr;
-            com.toStr( ostr );
-            agent_.M_client->sendMessage( ostr.str().c_str() );
 
+            PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::HIGH );
+            com.toCommandString( ostr );
+
+            agent_.M_client->sendMessage( ostr.str().c_str() );
             dlog.addText( Logger::SYSTEM,
                           "---- send[%s] no sync. change to high",
                           ostr.str().c_str() );
@@ -2523,11 +2551,12 @@ PlayerAgent::Impl::adjustSeeSynchNormalMode()
     if ( agent_.world().self().viewWidth().type() != ViewWidth::NARROW
          || agent_.world().self().viewQuality().type() != ViewQuality::LOW )
     {
-        PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::LOW );
         std::ostringstream ostr;
-        com.toStr( ostr );
-        agent_.M_client->sendMessage( ostr.str().c_str() );
 
+        PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::LOW );
+        com.toCommandString( ostr );
+
+        agent_.M_client->sendMessage( ostr.str().c_str() );
         dlog.addText( Logger::SYSTEM,
                       "---- send[%s] prepare see sync",
                       ostr.str().c_str() );
@@ -2562,11 +2591,12 @@ PlayerAgent::Impl::adjustSeeSynchSynchMode()
         // set synchronized see timing
         see_state_.setLastSeeTiming( SeeState::TIME_50_0 );
 
-        PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::HIGH );
         std::ostringstream ostr;
-        com.toStr( ostr );
-        agent_.M_client->sendMessage( ostr.str().c_str() );
 
+        PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::HIGH );
+        com.toCommandString( ostr );
+
+        agent_.M_client->sendMessage( ostr.str().c_str() );
         dlog.addText( Logger::SYSTEM,
                       "---- send[%s] synch_mode. see synch",
                       ostr.str().c_str() );
@@ -2590,11 +2620,12 @@ PlayerAgent::Impl::adjustSeeSynchSynchMode()
     {
         if ( agent_.world().self().viewQuality().type() == ViewQuality::LOW )
         {
-            PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::HIGH );
             std::ostringstream ostr;
-            com.toStr( ostr );
-            agent_.M_client->sendMessage( ostr.str().c_str() );
 
+            PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::HIGH );
+            com.toCommandString( ostr );
+
+            agent_.M_client->sendMessage( ostr.str().c_str() );
             dlog.addText( Logger::SYSTEM,
                           "---- send[%s] synch_mode. no sync. change to high",
                           ostr.str().c_str() );
@@ -2611,11 +2642,12 @@ PlayerAgent::Impl::adjustSeeSynchSynchMode()
     if ( agent_.world().self().viewWidth() != ViewWidth::NARROW
          && agent_.world().self().viewQuality() != ViewQuality::LOW )
     {
-        PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::LOW );
         std::ostringstream ostr;
-        com.toStr( ostr );
-        agent_.M_client->sendMessage( ostr.str().c_str() );
 
+        PlayerChangeViewCommand com( ViewWidth::NARROW, ViewQuality::LOW );
+        com.toCommandString( ostr );
+
+        agent_.M_client->sendMessage( ostr.str().c_str() );
         dlog.addText( Logger::SYSTEM,
                       "---- send[%s] synch_mode. prepare see sync",
                       ostr.str().c_str() );
@@ -2735,9 +2767,9 @@ PlayerAgent::doDash( const double & power,
 }
 
 bool 
-PlayerAgent::doOmniDash( PlayerAgent * agent, Vector2D point ) 
-{
-    return Body_GoToPoint2009(point, 1.0, ServerParam::i().maxDashPower()).execute( agent );    
+PlayerAgent::doOmniDash( PlayerAgent * agent, Vector2D point ) {
+    std::cout << "DO OMNI DASH" << std::endl;
+    return Body_GoToPoint(point, 1.0, ServerParam::i().maxDashPower()).execute( agent );
 }
 
 /*-------------------------------------------------------------------*/
@@ -2888,11 +2920,10 @@ PlayerAgent::doChangeView( const ViewWidth & width )
 {
     if ( M_impl->see_state_.isSynch() )
     {
-        if ( ! M_impl->see_state_.canChangeViewTo( width,
-                                                   world().time() ) )
+        if ( ! M_impl->see_state_.canSendChangeView( width, world().time() ) )
         {
             dlog.addText( Logger::ACTION,
-                          __FILE__": agent->doChangeView. width(%d) will break see synch... ",
+                          __FILE__" (doChangeView) width(%d) will break see synch... ",
                           width.type() );
             return false;
         }
@@ -2902,7 +2933,7 @@ PlayerAgent::doChangeView( const ViewWidth & width )
         if ( world().gameMode().type() != GameMode::PlayOn )
         {
             dlog.addText( Logger::ACTION,
-                          __FILE__": agent->doChangeView. no synch. not play on."
+                          __FILE__" (doChangeView) no synch. not play on."
                           " should try to adjust. " );
             return false;
         }
@@ -2911,7 +2942,7 @@ PlayerAgent::doChangeView( const ViewWidth & width )
     if ( width == M_effector.queuedNextViewWidth() )
     {
         dlog.addText( Logger::ACTION,
-                      __FILE__": agent->doChangeView. already same view mode %d",
+                      __FILE__" (doChangeView) already same view mode %d",
                       width.type() );
         return false;
     }
@@ -3082,7 +3113,7 @@ PlayerAgent::setArmAction( ArmAction * act )
 {
     if ( act )
     {
-        M_impl->arm_action_ = boost::shared_ptr< ArmAction >( act );
+        M_impl->arm_action_ = std::shared_ptr< ArmAction >( act );
     }
     else
     {
@@ -3104,7 +3135,7 @@ PlayerAgent::setNeckAction( NeckAction * act )
             dlog.addText( Logger::ACTION,
                           __FILE__": (setNeckAction) overwrite exsiting neck action." );
         }
-        M_impl->neck_action_ = boost::shared_ptr< NeckAction >( act );
+        M_impl->neck_action_ = std::shared_ptr< NeckAction >( act );
     }
     else
     {
@@ -3121,7 +3152,7 @@ PlayerAgent::setViewAction( ViewAction * act )
 {
     if ( act )
     {
-        M_impl->view_action_ = boost::shared_ptr< ViewAction >( act );
+        M_impl->view_action_ = std::shared_ptr< ViewAction >( act );
     }
     else
     {
@@ -3134,7 +3165,7 @@ PlayerAgent::setViewAction( ViewAction * act )
 
  */
 void
-PlayerAgent::addSayMessage( const SayMessage * message )
+PlayerAgent::addSayMessage( SayMessage * message )
 {
     if ( ! config().useCommunication() )
     {
@@ -3161,9 +3192,19 @@ PlayerAgent::removeSayMessage( const char header )
 
  */
 void
+PlayerAgent::clearSayMessage()
+{
+    M_effector.clearSayMessage();
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+void
 PlayerAgent::setIntention( SoccerIntention * intention )
 {
-    M_impl->intention_ = boost::shared_ptr< SoccerIntention >( intention );
+    M_impl->intention_ = std::shared_ptr< SoccerIntention >( intention );
 }
 
 /*-------------------------------------------------------------------*/

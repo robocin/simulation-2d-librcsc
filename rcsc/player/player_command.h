@@ -110,7 +110,7 @@ public:
       \return reference to the output stream
     */
     virtual
-    std::ostream & toStr( std::ostream & to ) const = 0;
+    std::ostream & toCommandString( std::ostream & to ) const = 0;
 
     /*!
       \brief get command name (pure virtual)
@@ -165,7 +165,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -218,7 +218,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -265,7 +265,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -314,7 +314,7 @@ public:
       \return reference to the output stream
     */
     virtual
-    std::ostream & toStr( std::ostream & to ) const = 0;
+    std::ostream & toCommandString( std::ostream & to ) const = 0;
 
     /*!
       \brief get command name (pure virtual)
@@ -369,7 +369,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -434,7 +434,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -502,7 +502,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -565,7 +565,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -633,7 +633,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -701,7 +701,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -764,7 +764,7 @@ public:
       \return reference to the output stream
     */
     virtual
-    std::ostream & toStr( std::ostream & to ) const = 0;
+    std::ostream & toCommandString( std::ostream & to ) const = 0;
 
     /*!
       \brief get command name (pure virtual)
@@ -814,7 +814,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command name
@@ -854,20 +854,16 @@ class PlayerChangeViewCommand
 private:
     ViewWidth M_width; //!< view width
     ViewQuality M_quality; //!< view quality
-    double M_version; //!< client version
 public:
     /*!
       \brief construct with view mode objects
       \param w view width object
       \param q view quality object
-      \param version client version
     */
     PlayerChangeViewCommand( const ViewWidth & w,
-                             const ViewQuality & q,
-                             const double & version = 8.0 )
+                             const ViewQuality & q )
         : M_width( w )
         , M_quality( q )
-        , M_version( version )
       { }
 
     /*!
@@ -884,7 +880,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -978,7 +974,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1072,7 +1068,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1176,7 +1172,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1258,7 +1254,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1385,7 +1381,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1463,7 +1459,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1513,7 +1509,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1566,7 +1562,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter
@@ -1623,7 +1619,7 @@ public:
       \param to reference to the output stream
       \return reference to the output stream
     */
-    std::ostream & toStr( std::ostream & to ) const;
+    std::ostream & toCommandString( std::ostream & to ) const;
 
     /*!
       \brief get command paramter

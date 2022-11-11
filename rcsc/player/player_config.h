@@ -33,10 +33,12 @@
 #define RCSC_PLAYER_PLAYER_CONFIG_H
 
 #include <string>
+#include <iosfwd>
 
 namespace rcsc {
 
 class ParamMap;
+class ParamParser;
 
 /*!
   \class PlayerConfig
@@ -44,6 +46,8 @@ class ParamMap;
 */
 class PlayerConfig {
 private:
+
+    ParamMap * M_param_map;
 
     // basic setting
 
@@ -73,6 +77,7 @@ private:
 
     bool M_use_communication; //!< if true, communiction is used
     bool M_hear_opponent_audio; //!< if true, opponent communication is heared
+    int M_audio_shift; //!< shift parameter to encrypt audio message
 
     bool M_use_fullstate; //!< if true, WorldModel is updated by fullstate.
     bool M_debug_fullstate; //!< if true, the virtual fullstate worldmodel is used.
@@ -157,31 +162,43 @@ private:
     bool M_debug_analyzer; //!< debug level flag
     bool M_debug_action_chain; //!< debug level flag
 
+    bool M_debug_training; //!< debug level flag
+
 public:
 
     /*!
-      \brief init variables by default value. create parametermap
+      \brief init variables by default value. create ParamMap instance
      */
     PlayerConfig();
 
     /*!
-      \brief nothing to do
+      \brief delete ParamMap instance
      */
     ~PlayerConfig();
 
+    /*!
+      \brief set parameter values using param parser instance
+      \param parser param parser instance
+     */
+    void parse( ParamParser & parser );
 
     /*!
-      \brief create parameter map
-      \param param_map reference to the parameter map instance
+      \brief print help message to the output stream
+      \param os output stream
+      \return output stream
      */
-    void createParamMap( ParamMap & param_map );
-
+    std::ostream & printHelp( std::ostream & os ) const;
 
 protected:
     /*!
       \brief set default value
     */
     void setDefaultParam();
+
+    /*!
+      \brief set parameter entries
+     */
+    void createParamMap();
 
 public:
 
@@ -197,7 +214,7 @@ public:
       \brief get the client version
       \return client version
      */
-    const double & version() const { return M_version; }
+    double version() const { return M_version; }
 
     /*!
       \brief get the uniform numver for a reconnect command
@@ -282,6 +299,12 @@ public:
       \return auditory sensor mode flag for opponent
      */
     bool hearOpponentAudio() const { return M_hear_opponent_audio; }
+
+    /*
+      \brief shift value to encrypt audio encoder
+      \return shift value
+     */
+    int audioShift() const { return M_audio_shift; }
 
     /*!
       \brief get the fullstate mode flag that determines whether the world model is updated by fullstate information
@@ -580,6 +603,11 @@ public:
      */
     bool debugActionChain() const { return M_debug_action_chain; }
 
+    /*!
+      \brief get the debug flag
+      \return debug flag
+     */
+    bool debugTraining() const { return M_debug_training; }
 };
 
 }

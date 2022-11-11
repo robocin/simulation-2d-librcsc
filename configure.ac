@@ -1,9 +1,9 @@
 #                                               -*- Autoconf -*-
 # Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.67)
+AC_PREREQ(2.65)
 LT_PREREQ(2.2)
-AC_INIT([librcsc],[4.1.0],[akky@users.sourceforge.jp])
+AC_INIT([librcsc],[rc2021],[akky@users.sourceforge.jp])
 
 #LT_PREREQ(2.2.4)
 
@@ -118,10 +118,17 @@ AC_CHECK_FUNCS([floor inet_addr getaddrinfo gethostbyname gettimeofday])
 AC_CHECK_FUNCS([memset pow rint select socket sqrt strerror strtol])
 
 ##################################################
+# check C++
+##################################################
+
+AX_CXX_COMPILE_STDCXX_14(noext)
+
+##################################################
 # check boost
 ##################################################
 
-AX_BOOST_BASE([1.32.0])
+AX_BOOST_BASE([1.38.0])
+AX_BOOST_SYSTEM
 CPPFLAGS="$CPPFLAGS $BOOST_CPPFLAGS"
 LDFLAGS="$LDFLAGS $BOOST_LDFLAGS"
 
@@ -193,6 +200,8 @@ AC_CONFIG_FILES([Doxyfile
                  Makefile
                  rcsc/Makefile
                  rcsc/ann/Makefile
+                 rcsc/clang/Makefile
+                 rcsc/color/Makefile
                  rcsc/geom/Makefile
                  rcsc/geom/triangle/Makefile
                  rcsc/gz/Makefile

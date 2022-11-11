@@ -32,8 +32,7 @@
 #ifndef RCSC_COMMON_TEAM_GRAPHIC_H
 #define RCSC_COMMON_TEAM_GRAPHIC_H
 
-#include <boost/shared_ptr.hpp>
-
+#include <memory>
 #include <vector>
 #include <map>
 #include <string>
@@ -43,7 +42,7 @@ namespace rcsc {
 /*!
   \class TeamGraphic
   \brief team graphic data management class
- */
+*/
 class TeamGraphic {
 public:
 
@@ -68,12 +67,12 @@ public:
         const int M_cpp; //!< character per pixel of this tile
 
         //! shared color strings
-        std::vector< boost::shared_ptr< std::string > > M_colors;
+        std::vector< std::shared_ptr< std::string > > M_colors;
         //! pixel lines
         std::vector< std::string > M_pixel_lines;
 
         // not used
-        XpmTile();
+        XpmTile() = delete;
     public:
 
         /*!
@@ -117,8 +116,7 @@ public:
           \brief get used color strings
           \return color string container
         */
-        const
-        std::vector< boost::shared_ptr< std::string > > & colors() const
+        const std::vector< std::shared_ptr< std::string > > & colors() const
           {
               return M_colors;
           }
@@ -127,8 +125,7 @@ public:
           \brief get pixel lines
           \return pixel line container
         */
-        const
-        std::vector< std::string > & pixelLines() const
+        const std::vector< std::string > & pixelLines() const
           {
               return M_pixel_lines;
           }
@@ -137,7 +134,7 @@ public:
           \brief add xpm color data string
           \param color pointer to the color data string
         */
-        void addColor( boost::shared_ptr< std::string > color )
+        void addColor( std::shared_ptr< std::string > color )
           {
               M_colors.push_back( color );
           }
@@ -160,9 +157,10 @@ public:
     };
 
 
-    typedef boost::shared_ptr< XpmTile > Ptr; //!< XpmTile pointer
+    typedef std::shared_ptr< XpmTile > Ptr; //!< XpmTile pointer
+    typedef std::shared_ptr< const XpmTile > ConstPtr; //!< XpmTile pointer
     typedef std::pair< int, int > Index; //!<  xpm tile index
-    typedef std::map< Index, Ptr > Map; //!< xpm tile map
+    typedef std::map< Index, const Ptr > Map; //!< xpm tile map
 
 private:
     int M_width; //!< total pixmap width
@@ -170,7 +168,7 @@ private:
     int M_cpp; //!< char per pixel
 
     //! color data strings
-    std::vector< boost::shared_ptr< std::string > > M_colors;
+    std::vector< std::shared_ptr< std::string > > M_colors;
 
     //! 8x8 xpm tiles
     Map M_tiles;
@@ -179,18 +177,18 @@ public:
 
     /*!
       \brief initialize member variables with illegal values.
-     */
+    */
     TeamGraphic();
 
     /*!
       \brief erase all data
-     */
+    */
     void clear();
 
     /*!
       \brief geth the total width of this team graphic
       \return pixel width value
-     */
+    */
     int width() const
       {
           return M_width;
@@ -199,7 +197,7 @@ public:
     /*!
       \brief geth the total height of this team graphic
       \return pixel height value
-     */
+    */
     int height() const
       {
           return M_height;
@@ -208,9 +206,8 @@ public:
     /*!
       \brief get the xpm color data strings
       \return color strings container
-     */
-    const
-    std::vector< boost::shared_ptr< std::string > > & colors() const
+    */
+    const std::vector< std::shared_ptr< std::string > > & colors() const
       {
           return M_colors;
       }
@@ -218,9 +215,8 @@ public:
     /*!
       \brief get the tiled xpm data
       \return tiled xpm data map container
-     */
-    const
-    Map & tiles() const
+    */
+    const Map & tiles() const
       {
           return M_tiles;
       }
@@ -229,27 +225,27 @@ public:
       \brief create tiled xpm from the raw xpm data
       \param xpm_data raw xpm string array
       \return true if successfully parsed
-     */
+    */
     bool createXpmTiles( const char * const * xpm_data );
 
     /*!
       \brief analyze team_graphic_? message from rcssserver & add new xpm tile
       \param server_msg raw server message
       \return true if successfully analyzed
-     */
+    */
     bool parse( const char * server_msg );
 
     /*!
       \brief read xpm data from the input file
       \param file_path input file path
       \return parsing result
-     */
+    */
     bool readXpmFile( const char * file_path );
 
     /*!
       \brief check if all xpm tiles have been completed or not
       \return checked result
-     */
+    */
     bool isValid() const;
 
 private:
@@ -258,8 +254,8 @@ private:
       \brief find string from the color string pool
       \param str searched string
       \return string pointer. if not found null pointer is returned.
-     */
-    boost::shared_ptr< std::string > findColor( const std::string & str );
+    */
+    std::shared_ptr< std::string > findColor( const std::string & str );
 
 public:
 
@@ -267,7 +263,7 @@ public:
       \brief output all tiled xpm data
       \param os reference to the output stream
       \return reference to the output stream
-     */
+    */
     std::ostream & print( std::ostream & os ) const;
 };
 
