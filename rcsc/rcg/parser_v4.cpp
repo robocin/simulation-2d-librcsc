@@ -360,7 +360,7 @@ ParserV4::parseShow( const int n_line,
             buf += n_read;
         }
 
-        handler.handleShow( time, show );
+        handler.handleShow( show );
     }
     else
     {
@@ -368,7 +368,9 @@ ParserV4::parseShow( const int n_line,
 
         char * next;
 
+        //
         // time
+        //
         while ( *buf == ' ' ) ++buf;
         while ( *buf != '\0' && *buf != ' ' ) ++buf;
         long time = std::strtol( buf, &next, 10 ); buf = next;
@@ -575,7 +577,7 @@ ParserV4::parseShow( const int n_line,
             }
         }
 
-        handler.handleShow( time, show );
+        handler.handleShow( show );
     }
 
     return true;

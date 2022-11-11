@@ -55,7 +55,8 @@ struct Point {
     double y;
 
     Point()
-        : x( 0.0 ), y( 0.0 )
+        : x( 0.0 ),
+          y( 0.0 )
       { }
 };
 
@@ -93,43 +94,26 @@ private:
     rcsc::SideID M_last_penalty_taker_side;
 
     // not used
-    ResultPrinter();
-    ResultPrinter( const ResultPrinter & );
-    ResultPrinter & operator=( const ResultPrinter & );
+    ResultPrinter() = delete;
+    ResultPrinter( const ResultPrinter & ) = delete;
+    ResultPrinter & operator=( const ResultPrinter & ) = delete;
 
 public:
 
     explicit
     ResultPrinter( const std::string & input_file );
 
-    // v3 or older
-    bool handleDispInfo( const rcsc::rcg::dispinfo_t & disp );
-    bool handleShowInfo( const rcsc::rcg::showinfo_t & show );
-    bool handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show );
-    bool handleMsgInfo( rcsc::rcg::Int16,
-                        const std::string & msg );
-    bool handlePlayMode( char playmode );
-    bool handlePlayerType( const rcsc::rcg::player_type_t & )
-      {
-          return true;
-      }
-    bool handleServerParam( const rcsc::rcg::server_params_t & param );
-    bool handlePlayerParam( const rcsc::rcg::player_params_t & )
-      {
-          return true;
-      }
-    bool handleTeamInfo( const rcsc::rcg::team_t & team_left,
-                         const rcsc::rcg::team_t & team_right );
-
-    // common
     bool handleEOF();
 
-    // v4 or later
-    bool handleShow( const int time,
-                     const rcsc::rcg::ShowInfoT & show );
+    bool handleShow( const rcsc::rcg::ShowInfoT & show );
     bool handleMsg( const int time,
                     const int board,
                     const std::string & msg );
+    bool handleDraw( const int ,
+                     const rcsc::rcg::drawinfo_t & )
+      {
+          return true;
+      }
     bool handlePlayMode( const int time,
                          const rcsc::PlayMode pm );
     bool handleTeam( const int time,
@@ -158,21 +142,21 @@ const double ResultPrinter::GOAL_POST_RADIUS = 0.06;
 
 */
 ResultPrinter::ResultPrinter( const std::string & input_file )
-    : M_game_date( 0 )
-    , M_goal_width( 14.02 )
-    , M_ball_size( 0.085 )
-    , M_half_time( 3000 )
-    , M_playmode( rcsc::PM_Null )
-    , M_cycle( 0 )
-    , M_left_team_name( "" )
-    , M_right_team_name( "" )
-    , M_left_score( 0 )
-    , M_right_score( 0 )
-    , M_left_penalty_taken( 0 )
-    , M_right_penalty_taken( 0 )
-    , M_left_penalty_score( 0 )
-    , M_right_penalty_score( 0 )
-    , M_last_penalty_taker_side( rcsc::NEUTRAL )
+    : M_game_date( 0 ),
+      M_goal_width( 14.02 ),
+      M_ball_size( 0.085 ),
+      M_half_time( 3000 ),
+      M_playmode( rcsc::PM_Null ),
+      M_cycle( 0 ),
+      M_left_team_name( "" ),
+      M_right_team_name( "" ),
+      M_left_score( 0 ),
+      M_right_score( 0 ),
+      M_left_penalty_taken( 0 ),
+      M_right_penalty_taken( 0 ),
+      M_left_penalty_score( 0 ),
+      M_right_penalty_score( 0 ),
+      M_last_penalty_taker_side( rcsc::NEUTRAL )
 {
     std::string::size_type pos = input_file.find_last_of( '/' );
     std::string base_name = ( pos == std::string::npos
@@ -188,20 +172,6 @@ ResultPrinter::ResultPrinter( const std::string & input_file )
         //std::cerr << "date=" << std::asctime( &t ) << std::endl;;
         //std::cerr << "date=" << std::ctime( &M_game_date ) << std::endl;;
     }
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-ResultPrinter::handleDispInfo( const rcsc::rcg::dispinfo_t & disp )
-{
-    if ( rcsc::rcg::SHOW_MODE == htons( disp.mode ) )
-    {
-        return handleShowInfo( disp.body.show );
-    }
-    return true;
 }
 
 /*-------------------------------------------------------------------*/
@@ -257,7 +227,7 @@ ResultPrinter::checkFinalPenaltyGoal( const Point & ball_pos )
             //std::cerr << "time_over -> penalty_score_l" << std::endl;
             ++M_left_penalty_score;
         }
-        else
+        else if ( M_last_penalty_taker_side == rcsc::RIGHT )
         {
             //std::cerr << "time_over -> penalty_score_r" << std::endl;
             ++M_right_penalty_score;
@@ -265,140 +235,6 @@ ResultPrinter::checkFinalPenaltyGoal( const Point & ball_pos )
     }
 
     s_prev_ball_pos = ball_pos;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-ResultPrinter::handleShowInfo( const rcsc::rcg::showinfo_t & show )
-{
-    M_cycle = rcsc::rcg::nstohi( show.time );
-
-    handlePlayMode( show.pmode );
-    handleTeamInfo( show.team[0], show.team[1] );
-
-    if ( M_last_penalty_taker_side != rcsc::NEUTRAL )
-    {
-        Point ball_pos;
-
-        ball_pos.x = rcsc::rcg::nstohd( show.pos[0].x );
-        ball_pos.y = rcsc::rcg::nstohd( show.pos[0].y );
-
-        checkFinalPenaltyGoal( ball_pos );
-    }
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-ResultPrinter::handleShortShowInfo2( const rcsc::rcg::short_showinfo_t2 & show )
-{
-    M_cycle = rcsc::rcg::nstohi( show.time );
-
-    if ( M_last_penalty_taker_side != rcsc::NEUTRAL )
-    {
-        Point ball_pos;
-
-        ball_pos.x = rcsc::rcg::nltohd( show.ball.x );
-        ball_pos.y = rcsc::rcg::nltohd( show.ball.y );
-
-        checkFinalPenaltyGoal( ball_pos );
-    }
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-ResultPrinter::handlePlayMode( char playmode )
-{
-    rcsc::PlayMode pm = static_cast< rcsc::PlayMode >( playmode );
-
-    if ( M_playmode == pm )
-    {
-        return true;
-    }
-
-    M_playmode = pm;
-
-    switch ( M_playmode ) {
-    case rcsc::PM_PenaltySetup_Left:
-        ++M_left_penalty_taken;
-        M_last_penalty_taker_side = rcsc::LEFT;
-        break;
-    case rcsc::PM_PenaltySetup_Right:
-        ++M_right_penalty_taken;
-        M_last_penalty_taker_side = rcsc::RIGHT;
-        break;
-    case rcsc::PM_PenaltyMiss_Left:
-        break;
-    case rcsc::PM_PenaltyMiss_Right:
-        break;
-    case rcsc::PM_PenaltyScore_Left:
-        ++M_left_penalty_score;
-        break;
-    case rcsc::PM_PenaltyScore_Right:
-        ++M_right_penalty_score;
-        break;
-    case rcsc::PM_TimeOver:
-        break;
-    default:
-        break;
-    }
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-ResultPrinter::handleServerParam( const rcsc::rcg::server_params_t & param )
-{
-    M_goal_width = rcsc::rcg::nltohd( param.goal_width );
-    M_ball_size = rcsc::rcg::nltohd( param.ball_size );
-    M_half_time = rcsc::rcg::nstohi( param.half_time );
-
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-ResultPrinter::handleTeamInfo( const rcsc::rcg::team_t & team_left,
-                               const rcsc::rcg::team_t & team_right )
-{
-    if ( M_left_team_name.empty() )
-    {
-        char buf[18];
-        std::memset( buf, '\0', 18 );
-        std::strncpy( buf, team_left.name, 16 );
-        M_left_team_name = buf;
-    }
-    if ( M_right_team_name.empty() )
-    {
-        char buf[18];
-        std::memset( buf, '\0', 18 );
-        std::strncpy( buf, team_right.name, 16 );
-        M_right_team_name = buf;
-    }
-
-    M_left_score = rcsc::rcg::nstohi( team_left.score );
-    M_right_score = rcsc::rcg::nstohi( team_right.score );
-
-    return true;
 }
 
 /*-------------------------------------------------------------------*/
@@ -424,7 +260,7 @@ ResultPrinter::handleEOF()
     }
 
     char date[256];
-    std::strftime( date, 255, "%Y%m%d%H%M", localtime( &M_game_date ) );
+    std::strftime( date, 255, "%Y%m%d%H%M%S", localtime( &M_game_date ) );
     std::cout << date << ' ';
 
     std::cout << M_left_team_name << " " << M_right_team_name << " "
@@ -471,30 +307,18 @@ ResultPrinter::handleEOF()
 
 */
 bool
-ResultPrinter::handleShow( const int,
-                           const rcsc::rcg::ShowInfoT & )
+ResultPrinter::handleShow( const rcsc::rcg::ShowInfoT & show )
 {
-    return true;
-}
+    M_cycle = static_cast< int >( show.time_ );
 
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-ResultPrinter::handleMsgInfo( rcsc::rcg::Int16,
-                              const std::string & msg )
-{
-    if ( ! msg.compare( 0, 8, "(result " ) )
+    if ( M_last_penalty_taker_side != rcsc::NEUTRAL )
     {
-        tm t;
-        if ( strptime( msg.c_str(), "(result %Y%m%d%H%M ", &t ) )
-        {
-            t.tm_sec = 0;
-            M_game_date = std::mktime( &t );
-            //std::cerr << "date=" << std::asctime( &t ) << std::endl;;
-            //std::cerr << "date=" << std::ctime( &M_game_date ) << std::endl;;
-        }
+        Point ball_pos;
+
+        ball_pos.x = show.ball_.x_;
+        ball_pos.y = show.ball_.y_;
+
+        checkFinalPenaltyGoal( ball_pos );
     }
 
     return true;
@@ -512,7 +336,11 @@ ResultPrinter::handleMsg( const int,
     if ( ! msg.compare( 0, 8, "(result " ) )
     {
         tm t;
-        if ( strptime( msg.c_str(), "(result %Y%m%d%H%M ", &t ) )
+        if ( strptime( msg.c_str(), "(result %Y%m%d%H%M%S ", &t ) )
+        {
+            M_game_date = std::mktime( &t );
+        }
+        else if ( strptime( msg.c_str(), "(result %Y%m%d%H%M ", &t ) )
         {
             t.tm_sec = 0;
             M_game_date = std::mktime( &t );
@@ -528,10 +356,41 @@ ResultPrinter::handleMsg( const int,
 /*!
 
 */
-bool ResultPrinter::handlePlayMode( const int,
-                                    const rcsc::PlayMode pm )
+bool
+ResultPrinter::handlePlayMode( const int,
+                               const rcsc::PlayMode pm )
 {
+    if ( M_playmode == pm )
+    {
+        return true;
+    }
+
     M_playmode = pm;
+
+    switch ( M_playmode ) {
+    case rcsc::PM_PenaltySetup_Left:
+        ++M_left_penalty_taken;
+        M_last_penalty_taker_side = rcsc::LEFT;
+        break;
+    case rcsc::PM_PenaltySetup_Right:
+        ++M_right_penalty_taken;
+        M_last_penalty_taker_side = rcsc::RIGHT;
+        break;
+    case rcsc::PM_PenaltyMiss_Left:
+        break;
+    case rcsc::PM_PenaltyMiss_Right:
+        break;
+    case rcsc::PM_PenaltyScore_Left:
+        ++M_left_penalty_score;
+        break;
+    case rcsc::PM_PenaltyScore_Right:
+        ++M_right_penalty_score;
+        break;
+    case rcsc::PM_TimeOver:
+        break;
+    default:
+        break;
+    }
 
     return true;
 }
@@ -540,9 +399,10 @@ bool ResultPrinter::handlePlayMode( const int,
 /*!
 
 */
-bool ResultPrinter::handleTeam( const int,
-                                const rcsc::rcg::TeamT & team_l,
-                                const rcsc::rcg::TeamT & team_r )
+bool
+ResultPrinter::handleTeam( const int,
+                           const rcsc::rcg::TeamT & team_l,
+                           const rcsc::rcg::TeamT & team_r )
 {
     M_left_team_name = team_l.name_;
     M_left_score = team_l.score_;
@@ -562,8 +422,89 @@ bool ResultPrinter::handleTeam( const int,
 
 */
 bool
-ResultPrinter::handleServerParam( const std::string & )
+ResultPrinter::handleServerParam( const std::string & line )
 {
+    int n_read = 0;
+
+    char message_name[32];
+    if ( std::sscanf( line.c_str(), " ( %31s %n ", message_name, &n_read ) != 1 )
+    {
+        std::cerr << __FILE__ << ' ' << __LINE__
+                  << ":error: failed to the parse message id." << std::endl;
+        return false;
+    }
+
+    for ( std::string::size_type pos = line.find_first_of( '(', n_read );
+          pos != std::string::npos;
+          pos = line.find_first_of( '(', pos ) )
+    {
+        std::string::size_type end_pos = line.find_first_of( ' ', pos );
+        if ( end_pos == std::string::npos )
+        {
+            std::cerr << __FILE__ << ' ' << __LINE__
+                      << ":error: failed to find parameter name." << std::endl;
+            return false;
+        }
+        pos += 1;
+
+        const std::string name_str( line, pos, end_pos - pos );
+        pos = end_pos;
+
+        // search end paren or double quatation
+        end_pos = line.find_first_of( ")\"", end_pos ); //"
+        if ( end_pos == std::string::npos )
+        {
+            std::cerr << __FILE__ << ' ' << __LINE__
+                      << ":error: failed to parse parameter value for ["
+                      << name_str << "] " << std::endl;
+            return false;
+        }
+
+        // found quated value
+        if ( line[end_pos] == '\"' )
+        {
+            pos = end_pos;
+            end_pos = line.find_first_of( '\"', end_pos + 1 ); //"
+            if ( end_pos == std::string::npos )
+            {
+                std::cerr << __FILE__ << ' ' << __LINE__
+                          << ":error: ailed to parse the quated value for ["
+                          << name_str << "] " << std::endl;
+                return false;
+            }
+            end_pos += 1; // skip double quatation
+        }
+        else
+        {
+            pos += 1; // skip white space
+        }
+
+        const std::string value_str( line, pos, end_pos - pos );
+        pos = end_pos;
+
+        try
+        {
+            if ( name_str == "goal_width" )
+            {
+                M_goal_width = std::stod( value_str );
+            }
+            else if ( name_str == "ball_size" )
+            {
+                M_ball_size = std::stod( value_str );
+            }
+            else if ( name_str == "half_time" )
+            {
+                M_half_time = std::stoi( value_str );
+            }
+        }
+        catch ( std::exception & e )
+        {
+            std::cerr << __FILE__ << ' ' << __LINE__
+                      << ": Exeption caught! " << e.what() << std::endl;
+            return false;
+        }
+    }
+
     return true;
 }
 

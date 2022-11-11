@@ -67,18 +67,17 @@ const double ServerParam::DEFAULT_GOAL_POST_RADIUS = 0.06;
 const double ServerParam::DEFAULT_WIND_WEIGHT = 10000.0;
 
 
-
 const double ServerParam::DEFAULT_GOAL_WIDTH = 14.02;
 const double ServerParam::DEFAULT_INERTIA_MOMENT = 5.0;
 
 const double ServerParam::DEFAULT_PLAYER_SIZE = 0.3;
 const double ServerParam::DEFAULT_PLAYER_DECAY = 0.4;
-const double ServerParam::DEFAULT_PLAYER_RAND = 0.05;
+const double ServerParam::DEFAULT_PLAYER_RAND = 0.1;
 const double ServerParam::DEFAULT_PLAYER_WEIGHT = 60.0;
-const double ServerParam::DEFAULT_PLAYER_SPEED_MAX = 1.2;
+const double ServerParam::DEFAULT_PLAYER_SPEED_MAX = 1.05; // [13.0.0] 1.2 -> 1.05
 const double ServerParam::DEFAULT_PLAYER_ACCEL_MAX = 1.0;
 
-const double ServerParam::DEFAULT_STAMINA_MAX = 4000.0;
+const double ServerParam::DEFAULT_STAMINA_MAX = 8000.0; // [13.0.0] 4000.0 -> 8000.0
 const double ServerParam::DEFAULT_STAMINA_INC_MAX = 45.0;
 
 const double ServerParam::DEFAULT_RECOVER_INIT = 1.0;
@@ -93,7 +92,7 @@ const double ServerParam::DEFAULT_EFFORT_DEC = 0.005;
 const double ServerParam::DEFAULT_EFFORT_INC_THR = 0.6;
 const double ServerParam::DEFAULT_EFFORT_INC = 0.01;
 
-const double ServerParam::DEFAULT_KICK_RAND = 0.0;
+const double ServerParam::DEFAULT_KICK_RAND = 0.1; // [12.0.0] 0.0 -> 0.1
 const bool   ServerParam::DEFAULT_TEAM_ACTUATOR_NOISE = false;
 const double ServerParam::DEFAULT_PLAYER_RAND_FACTOR_L = 1.0;
 const double ServerParam::DEFAULT_PLAYER_RAND_FACTOR_R = 1.0;
@@ -104,7 +103,8 @@ const double ServerParam::DEFAULT_BALL_SIZE = 0.085;
 const double ServerParam::DEFAULT_BALL_DECAY = 0.94;
 const double ServerParam::DEFAULT_BALL_RAND = 0.05;
 const double ServerParam::DEFAULT_BALL_WEIGHT = 0.2;
-const double ServerParam::DEFAULT_BALL_SPEED_MAX = 2.7;
+//const double ServerParam::DEFAULT_BALL_SPEED_MAX = 2.7;
+const double ServerParam::DEFAULT_BALL_SPEED_MAX = 3.0;
 const double ServerParam::DEFAULT_BALL_ACCEL_MAX = 2.7;
 
 const double ServerParam::DEFAULT_DASH_POWER_RATE = 0.006;
@@ -134,7 +134,7 @@ const double ServerParam::DEFAULT_WIND_RAND = 0.0;
 //const double ServerParam::DEFAULT_KICKABLE_AREA
 // = KICKABLE_MARGIN + PLAYER_SIZE + BALL_SIZE;
 
-const double ServerParam::DEFAULT_CATCH_AREA_L = 2.0;
+const double ServerParam::DEFAULT_CATCH_AREA_L = 1.2; // [12.0.0] 2.0 -> 1.2
 const double ServerParam::DEFAULT_CATCH_AREA_W = 1.0;
 const double ServerParam::DEFAULT_CATCH_PROBABILITY = 1.0;
 const int    ServerParam::DEFAULT_GOALIE_MAX_MOVES = 2;
@@ -248,8 +248,8 @@ const int    ServerParam::DEFAULT_GAME_LOG_COMPRESSION = 0;
 const bool   ServerParam::DEFAULT_USE_PROFILE = false;
 
 const double ServerParam::DEFAULT_TACKLE_DIST = 2.0;
-const double ServerParam::DEFAULT_TACKLE_BACK_DIST = 0.5;
-const double ServerParam::DEFAULT_TACKLE_WIDTH = 1.0;
+const double ServerParam::DEFAULT_TACKLE_BACK_DIST = 0.0; // [12.0.0] 0.5 -> 0.0
+const double ServerParam::DEFAULT_TACKLE_WIDTH = 1.25; // [12.0.0] 1.0 -> 1.25
 const double ServerParam::DEFAULT_TACKLE_EXPONENT = 6.0;
 const int    ServerParam::DEFAULT_TACKLE_CYCLES = 10;
 const double ServerParam::DEFAULT_TACKLE_POWER_RATE = 0.027;
@@ -292,12 +292,12 @@ const int    ServerParam::DEFAULT_NR_NORMAL_HALFS = 2;
 const int    ServerParam::DEFAULT_NR_EXTRA_HALFS = 2;
 const bool   ServerParam::DEFAULT_PENALTY_SHOOT_OUTS = true;
 
-const int    ServerParam::DEFAULT_PEN_BEFORE_SETUP_WAIT = 30;
-const int    ServerParam::DEFAULT_PEN_SETUP_WAIT = 100;
-const int    ServerParam::DEFAULT_PEN_READY_WAIT = 50;
-const int    ServerParam::DEFAULT_PEN_TAKEN_WAIT = 200;
+const int    ServerParam::DEFAULT_PEN_BEFORE_SETUP_WAIT = 10; // [13.2.0] 30 -> 10
+const int    ServerParam::DEFAULT_PEN_SETUP_WAIT = 70; // [13.2.0] 100 -> 70
+const int    ServerParam::DEFAULT_PEN_READY_WAIT = 10; // [13.2.0] 50 -> 10
+const int    ServerParam::DEFAULT_PEN_TAKEN_WAIT = 150; // [13.2.0] 200 -> 150
 const int    ServerParam::DEFAULT_PEN_NR_KICKS = 5;
-const int    ServerParam::DEFAULT_PEN_MAX_EXTRA_KICKS = 10;
+const int    ServerParam::DEFAULT_PEN_MAX_EXTRA_KICKS = 5; // [13.2.0] 10 -> 5
 const double ServerParam::DEFAULT_PEN_DIST_X = 42.5;
 const bool   ServerParam::DEFAULT_PEN_RANDOM_WINNER = false;
 const bool   ServerParam::DEFAULT_PEN_ALLOW_MULT_KICKS = true;
@@ -306,30 +306,47 @@ const bool   ServerParam::DEFAULT_PEN_COACH_MOVES_PLAYERS = true;
 
 const std::string ServerParam::DEFAULT_MODULE_DIR = "";
 
+// 11.0.0
 const double ServerParam::DEFAULT_BALL_STUCK_AREA = 3.0;
 
+// 12.0.0
 const double ServerParam::DEFAULT_MAX_TACKLE_POWER = 100.0;
-const double ServerParam::DEFAULT_MAX_BACK_TACKLE_POWER = 50.0;
-const double ServerParam::DEFAULT_PLAYER_SPEED_MAX_MIN = 0.8;
-const double ServerParam::DEFAULT_EXTRA_STAMINA = 0.0;
-const int ServerParam::DEFAULT_SYNCH_SEE_OFFSET = 30;
+const double ServerParam::DEFAULT_MAX_BACK_TACKLE_POWER = 0.0; // [13.0.0] 50.0 -> 0.0
+const double ServerParam::DEFAULT_PLAYER_SPEED_MAX_MIN = 0.75; // [13.0.0] 0.8 -> 0.75
+const double ServerParam::DEFAULT_EXTRA_STAMINA = 50.0; // [13.0.0] 0.0 -> 50.0
+const int ServerParam::DEFAULT_SYNCH_SEE_OFFSET = 0; // [13.2.0] 30 -> 0
 
-const int ServerParam::EXTRA_HALF_TIME = 100;
+// 12.1.3
+const int ServerParam::EXTRA_HALF_TIME = 100; // [13.0.0] 300 -> 100
 
-const double ServerParam::STAMINA_CAPACITY = -1.0; //148600.0;
-const double ServerParam::MAX_DASH_ANGLE = 0.0; //180.0;
-const double ServerParam::MIN_DASH_ANGLE = 0.0; //-180.0;
-const double ServerParam::DASH_ANGLE_STEP = 180.0; // 90.0
-const double ServerParam::SIDE_DASH_RATE = 0.25;
-const double ServerParam::BACK_DASH_RATE = 0.5;
+// 13.0.0
+const double ServerParam::STAMINA_CAPACITY = 130600.0; // [14.0.0] 148600.0 -> 130600.0
+const double ServerParam::MAX_DASH_ANGLE = +180.0;
+const double ServerParam::MIN_DASH_ANGLE = -180.0;
+const double ServerParam::DASH_ANGLE_STEP = 45.0; // [14.0.0] 90.0 -> 45.0
+const double ServerParam::SIDE_DASH_RATE = 0.4; // [14.0.0] 0.25 -> 0.4
+const double ServerParam::BACK_DASH_RATE = 0.7; // [14.0.0] 0.5 -> 0.6, [17.0.0] 0.6 -> 0.7
 const double ServerParam::MAX_DASH_POWER = 100.0;
-const double ServerParam::MIN_DASH_POWER = -100.0;
+const double ServerParam::MIN_DASH_POWER = 0.0; // [17.0.0] -100.0 -> 0.0
 
 // 14.0.0
 const double ServerParam::TACKLE_RAND_FACTOR = 2.0;
 const double ServerParam::FOUL_DETECT_PROBABILITY = 0.5;
 const double ServerParam::FOUL_EXPONENT = 10.0;
 const int ServerParam::FOUL_CYCLES = 5;
+
+// 15.0
+const double ServerParam::RED_CARD_PROBABILITY = 0.0;
+
+// 16.0
+const int ServerParam::ILLEGAL_DEFENSE_DURATION = 20;
+const int ServerParam::ILLEGAL_DEFENSE_NUMBER = 0;
+const double ServerParam::ILLEGAL_DEFENSE_DIST_X = 16.5;
+const double ServerParam::ILLEGAL_DEFENSE_WIDTH = 40.32;
+
+// 17.0
+const double ServerParam::MAX_CATCH_ANGLE = +90.0;
+const double ServerParam::MIN_CATCH_ANGLE = -90.0;
 
 /*
   It is necessary to check out whether server is NEW_QSTEP mode
@@ -633,8 +650,27 @@ ServerParam::setDefaultParam()
     M_foul_detect_probability = FOUL_DETECT_PROBABILITY;
     M_foul_exponent = FOUL_EXPONENT;
     M_foul_cycles = FOUL_CYCLES;
+    M_golden_goal = false; // [15.0.0] true -> false
+
+    // 15.0.0
+    M_red_card_probability = RED_CARD_PROBABILITY;
+
+    // 16.0
+    M_illegal_defense_duration = ILLEGAL_DEFENSE_DURATION;
+    M_illegal_defense_number = ILLEGAL_DEFENSE_NUMBER;
+    M_illegal_defense_dist_x = ILLEGAL_DEFENSE_DIST_X;
+    M_illegal_defense_width = ILLEGAL_DEFENSE_WIDTH;
+    M_fixed_teamname_l = "";
+    M_fixed_teamname_r = "";
+
+    // 17.0
+    M_max_catch_angle = MAX_CATCH_ANGLE;
+    M_min_catch_angle = MIN_CATCH_ANGLE;
+
+    // XXX
     M_random_seed = -1;
-    M_golden_goal = true;
+    M_long_kick_power_factor = 2.0;
+    M_long_kick_delay = 2;
 
     setAdditionalParam();
 }
@@ -928,11 +964,20 @@ ServerParam::createMap()
         ( "foul_detect_probability", "", &M_foul_detect_probability )
         ( "foul_exponent", "", &M_foul_exponent )
         ( "foul_cycles", "", &M_foul_cycles )
-        ( "random_seed", "", &M_random_seed )
         ( "golden_goal", "", &M_golden_goal )
-        // test
-        ( "min_catch_probability", "", &M_min_catch_probability )
-        ( "reliable_catch_area_l", "", &M_reliable_catch_area_l )
+        // 15.0.0
+        ( "red_card_probability", "", &M_red_card_probability )
+        // 16.0.0
+        ( "illegal_defense_duration", "", &M_illegal_defense_duration )
+        ( "illegal_defense_number", "", &M_illegal_defense_number )
+        ( "illegal_defense_dist_x", "", &M_illegal_defense_dist_x )
+        ( "illegal_defense_width", "", &M_illegal_defense_width )
+        ( "fixed_teamname_l", "", &M_fixed_teamname_l )
+        ( "fixed_teamname_r", "", &M_fixed_teamname_r )
+        // 17.0
+        ( "max_catch_angle", "", &M_max_catch_angle )
+        ( "min_catch_angle", "", &M_min_catch_angle )
+        //( "random_seed", "", &M_random_seed )
         ;
 }
 
@@ -1503,14 +1548,13 @@ ServerParam::convertTo( rcg::server_params_t & to ) const
 
 */
 std::string
-ServerParam::toStr() const
+ServerParam::toServerString() const
 {
     std::ostringstream os;
 
     os << "(server_param ";
 
-    const std::map< std::string, ParamPtr >::const_iterator end = M_param_map->longNameMap().end();
-    for ( std::map< std::string, ParamPtr >::const_iterator it = M_param_map->longNameMap().begin();
+    for ( std::map< std::string, ParamEntity::Ptr >::const_iterator it = M_param_map->longNameMap().begin(), end = M_param_map->longNameMap().end();
           it != end;
           ++it )
     {
@@ -1531,7 +1575,7 @@ ServerParam::toStr() const
 double
 ServerParam::dashDirRate( const double & dir ) const
 {
-    double d = discretizeDashAngle( normalizeDashAngle( dir ) );
+    double d = discretizeDashAngle( dir );
     double r = std::fabs( d ) > 90.0
         ? backDashRate() - ( ( backDashRate() - sideDashRate() )
                              * ( 1.0 - ( std::fabs( d ) - 90.0 ) / 90.0 )

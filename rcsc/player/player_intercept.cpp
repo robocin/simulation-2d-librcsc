@@ -48,98 +48,226 @@
 
 namespace rcsc {
 
+namespace {
+
+/*-------------------------------------------------------------------*/
+inline
+Vector2D
+get_pos( const PlayerObject & p )
+{
+    return ( p.heardPosCount() < p.seenPosCount()
+             ? p.heardPos()
+             : p.seenPos() );
+}
+
+/*-------------------------------------------------------------------*/
+inline
+Vector2D
+get_vel( const PlayerObject & p )
+{
+    return ( p.velCount() < p.seenVelCount()
+             ? p.vel()
+             : p.seenVel() );
+}
+
+/*-------------------------------------------------------------------*/
+inline
+double
+get_control_area( const PlayerObject & p,
+                  const WorldModel & wm,
+                  const bool goalie )
+{
+    if ( p.side() == wm.ourSide() )
+    {
+        return ( goalie
+                 ? p.playerTypePtr()->reliableCatchableDist() - 0.2
+                 : p.playerTypePtr()->kickableArea() - 0.2 );
+    }
+
+    return ( goalie
+             ? p.playerTypePtr()->reliableCatchableDist()
+             : p.playerTypePtr()->kickableArea() );
+}
+
+/*-------------------------------------------------------------------*/
+inline
+int
+get_bonus_step( const PlayerObject & p,
+                const SideID our_side )
+{
+    return p.side() == our_side
+        // ? std::min( 3, static_cast< int >( std::ceil( std::min( p.heardPosCount(), p.seenPosCount() ) * 0.75 ) ) )
+        // : std::min( 3, static_cast< int >( std::ceil( std::min( p.heardPosCount(), p.seenPosCount() ) * 0.75 ) ) );
+        ? std::min( 3, std::min( p.heardPosCount(), p.seenPosCount() ) )
+        : std::min( 3, std::min( p.heardPosCount(), p.seenPosCount() ) );
+}
+
+/*-------------------------------------------------------------------*/
+inline
+int
+get_penalty_step( const PlayerObject & p )
+{
+    return ( p.isTackling()
+             ? std::max( 0, ServerParam::i().tackleCycles() - p.tackleCount() - 2 )
+             : 0 );
+}
+
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+inline
+Vector2D
+PlayerIntercept::PlayerData::inertiaPoint( const int step ) const
+{
+    return ptype_.inertiaPoint( pos_, vel_, step + bonus_step_ );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+PlayerIntercept::PlayerIntercept( const WorldModel & world,
+                                  const std::vector< Vector2D > & ball_cache )
+    : M_world( world ),
+      M_ball_cache( ball_cache ),
+      M_ball_move_angle( ( ball_cache.back() - ball_cache.front() ).th() )
+{
+
+}
+
 /*-------------------------------------------------------------------*/
 /*!
 
 */
 int
 PlayerIntercept::predict( const PlayerObject & player,
-                          const PlayerType & player_type,
-                          const int max_cycle ) const
+                          const bool goalie ) const
 {
-    const double penalty_x_abs = ServerParam::i().pitchHalfLength() - ServerParam::i().penaltyAreaLength();
-    const double penalty_y_abs = ServerParam::i().penaltyAreaHalfWidth();
+    const PlayerType * ptype = player.playerTypePtr();
 
-    const int pos_count = std::min( player.seenPosCount(), player.posCount() );
-    const Vector2D & player_pos = ( player.seenPosCount() <= player.posCount()
-                                    ? player.seenPos()
-                                    : player.pos() );
-    int min_cycle = 0;
+    if ( ! ptype )
     {
-        Vector2D ball_to_player = player_pos - M_world.ball().pos();
-        ball_to_player.rotate( - M_world.ball().vel().th() );
-        min_cycle = static_cast< int >( std::floor( ball_to_player.absY()
-                                                    / player_type.realSpeedMax() ) );
+        std::cerr << __FILE__ << ' ' << __LINE__
+                  << ": ERROR NULL player type." << std::endl;
+        dlog.addText( Logger::INTERCEPT,
+                      __FILE__": NULL player type. side=%c unum=%d",
+                      side_char( player.side() ), player.unum() );
+        return 1000;
     }
 
-    if ( player.isTackling() )
-    {
-        min_cycle += std::max( 0,
-                               ServerParam::i().tackleCycles() - player.tackleCount() - 2 );
-    }
+    const ServerParam & SP = ServerParam::i();
 
-    min_cycle = std::max( 0,
-                          min_cycle - std::min( player.seenPosCount(), player.posCount() ) );
+    const double pen_area_x = SP.pitchHalfLength() - SP.penaltyAreaLength();
+    const double pen_area_y = SP.penaltyAreaHalfWidth();
+
+    const PlayerData data( player,
+                           *ptype,
+                           get_pos( player ),
+                           get_vel( player ),
+                           get_control_area( player, M_world, goalie ),
+                           get_bonus_step( player, M_world.ourSide() ),
+                           get_penalty_step( player ) );
+
+    const int min_step = estimateMinStep( data );
+    const int max_step = M_ball_cache.size() - 1;
 
 #ifdef DEBUG
     dlog.addText( Logger::INTERCEPT,
-                  "Intercept Player %d %d (%.1f %.1f)---- min_cycle=%d max_cycle=%d",
-                  player.side(),
+                  "Intercept Player %c %d (%.1f %.1f) - min=%d max=%d pos=(%.1f %.1f) bonus=%d penalty=%d",
+                  side_char( player.side() ),
                   player.unum(),
                   player.pos().x, player.pos().y,
-                  min_cycle, max_cycle );
+                  min_step, max_step,
+                  data.pos_.x, data.pos_.y,
+                  data.bonus_step_, data.penalty_step_ );
 #endif
-    if ( min_cycle > max_cycle )
+
+    if ( min_step > max_step )
     {
-        return predictFinal( player, player_type );
+        return predictFinal( data );
     }
 
-    const std::size_t MAX_LOOP = std::min( static_cast< std::size_t >( max_cycle ),
-                                           M_ball_pos_cache.size() );
-
-    for ( std::size_t cycle = static_cast< std::size_t >( min_cycle );
-          cycle < MAX_LOOP;
-          ++cycle )
+    for ( int total_step = min_step; total_step < max_step; ++total_step )
     {
-        const Vector2D & ball_pos = M_ball_pos_cache.at( cycle );
+        const Vector2D & ball_pos = M_ball_cache[total_step];
 #ifdef DEBUG2
         dlog.addText( Logger::INTERCEPT,
-                      "*** cycle=%d  ball(%.2f %.2f)",
-                      cycle, ball_pos.x, ball_pos.y );
+                      "*** step=%d  ball(%.2f %.2f)",
+                      total_step, ball_pos.x, ball_pos.y );
 #endif
-        const double control_area = ( ( player.goalie()
-                                        && ball_pos.absX() > penalty_x_abs
-                                        && ball_pos.absY() < penalty_y_abs )
-                                      ? ServerParam::i().catchableArea()
-                                      : player_type.kickableArea() );
 
-        if ( control_area + player_type.realSpeedMax() * ( cycle + pos_count ) + 0.5
-             < player_pos.dist( ball_pos ) )
+        if ( goalie
+             && ( ball_pos.absX() < pen_area_x
+                  || pen_area_y < ball_pos.absY() ) )
         {
-            // never reach
+           // never reach
 #ifdef DEBUG2
             dlog.addText( Logger::INTERCEPT,
-                          "--->cycle=%d  never reach! ball(%.2f %.2f)",
-                          cycle, ball_pos.x, ball_pos.y );
+                          "--->cycle=%d goalie. out of penalty area. ball(%.2f %.2f)",
+                          total_step, ball_pos.x, ball_pos.y );
 #endif
             continue;
         }
 
-        if ( canReachAfterTurnDash( cycle,
-                                    player, player_type,
-                                    control_area,
-                                    ball_pos ) )
+        if ( std::pow( data.control_area_
+                       + data.ptype_.realSpeedMax() * ( total_step + data.bonus_step_ - data.penalty_step_ )
+                       + 0.5, 2 )
+             < data.pos_.dist2( ball_pos ) )
+        {
+            // never reach
+#ifdef DEBUG2
+            dlog.addText( Logger::INTERCEPT,
+                          "--->step=%d  never reach! ball(%.2f %.2f) dist=%.3f",
+                          total_step, ball_pos.x, ball_pos.y,
+                          data.pos_.dist( ball_pos ) );
+#endif
+            continue;
+        }
+
+        if ( canReachAfterTurnDash( data,
+                                    ball_pos,
+                                    total_step ) )
         {
 #ifdef DEBUG
             dlog.addText( Logger::INTERCEPT,
                           "--->cycle=%d  Sucess! ball(%.2f %.2f)",
-                          cycle, ball_pos.x, ball_pos.y );
+                          total_step, ball_pos.x, ball_pos.y );
 #endif
-            return cycle;
+            return total_step;
         }
     }
 
-    return predictFinal( player, player_type );
+    if ( goalie
+         && ( M_ball_cache.back().absX() < pen_area_x
+              || pen_area_y < M_ball_cache.back().absY() ) )
+    {
+#ifdef DEBUG
+        dlog.addText( Logger::INTERCEPT,
+                      "FAILURE goalie. final. over the penalty area. bpos=(%.2f %.2f)",
+                      M_ball_cache.back().x, M_ball_cache.back().y );
+#endif
+        return 1000;
+    }
+
+    return predictFinal( data );
+}
+
+/*-------------------------------------------------------------------*/
+/*!
+
+*/
+int
+PlayerIntercept::estimateMinStep( const PlayerData & data ) const
+{
+    Vector2D rel = data.pos_ - M_ball_cache.front();
+    rel.rotate( - M_ball_move_angle );
+
+    double move_dist = std::max( 0.3, rel.absY() - data.control_area_ );
+    int step = static_cast< int >( std::floor( move_dist / data.ptype_.realSpeedMax() ) );
+    return std::max( 0, step - data.bonus_step_ + data.penalty_step_ );
 }
 
 /*-------------------------------------------------------------------*/
@@ -147,35 +275,35 @@ PlayerIntercept::predict( const PlayerObject & player,
 
 */
 bool
-PlayerIntercept::canReachAfterTurnDash( const int cycle,
-                                        const PlayerObject & player,
-                                        const PlayerType & player_type,
-                                        const double & control_area,
-                                        const Vector2D & ball_pos ) const
+PlayerIntercept::canReachAfterTurnDash( const PlayerData & data,
+                                        const Vector2D & ball_pos,
+                                        const int total_step ) const
 {
-    int n_turn = predictTurnCycle( cycle,
-                                   player,
-                                   player_type,
-                                   control_area,
-                                   ball_pos );
+    /*
+      TODO
+      if ( canReachAfterOmniDash() )
+      {
+          return true;
+      }
+     */
+
+    int n_turn = predictTurnCycle( data, ball_pos, total_step );
 #ifdef DEBUG2
     dlog.addText( Logger::INTERCEPT,
-                  "______ loop %d  turn step = %d",
-                  cycle, n_turn );
+                  "______ step %d  turn=%d",
+                  total_step, n_turn );
 #endif
 
-    int n_dash = cycle - n_turn;
-    if ( n_dash < 0 )
+    int max_dash = total_step - n_turn - data.penalty_step_;
+    if ( max_dash < 0 )
     {
         return false;
     }
 
-    return canReachAfterDash( n_turn,
-                              n_dash,
-                              player,
-                              player_type,
-                              control_area,
-                              ball_pos );
+    return canReachAfterDash( data,
+                              ball_pos,
+                              total_step,
+                              n_turn );
 }
 
 /*-------------------------------------------------------------------*/
@@ -183,39 +311,23 @@ PlayerIntercept::canReachAfterTurnDash( const int cycle,
 
 */
 int
-PlayerIntercept::predictTurnCycle( const int cycle,
-                                   const PlayerObject & player,
-                                   const PlayerType & player_type,
-                                   const double & control_area,
-                                   const Vector2D & ball_pos ) const
+PlayerIntercept::predictTurnCycle( const PlayerData & data,
+                                   const Vector2D & ball_pos,
+                                   const int total_step ) const
 {
-//     if ( player.bodyCount() > std::min( player.seenPosCount(), player.posCount() ) )
-//     {
-//         return 0;
-//     }
+    Vector2D inertia_pos = data.inertiaPoint( total_step );
+    Vector2D ball_rel = ball_pos - inertia_pos;
+    double ball_dist = ball_rel.r();
 
-    const Vector2D & ppos = ( player.seenPosCount() <= player.posCount()
-                              ? player.seenPos()
-                              : player.pos() );
-    const Vector2D & pvel = ( player.seenVelCount() <= player.velCount()
-                              ? player.seenVel()
-                              : player.vel() );
+    double angle_diff = ( ball_rel.th() - data.player_.body() ).abs();
 
-    Vector2D inertia_pos = player_type.inertiaPoint( ppos,
-                                                     pvel,
-                                                     cycle );
-    Vector2D target_rel = ball_pos - inertia_pos;
-    double target_dist = target_rel.r();
     double turn_margin = 180.0;
-    if ( control_area < target_dist )
+    if ( data.control_area_ < ball_dist )
     {
-        turn_margin = AngleDeg::asin_deg( control_area / target_dist );
+        turn_margin = std::max( 15.0, AngleDeg::asin_deg( data.control_area_ / ball_dist ) );
     }
-    turn_margin = std::max( turn_margin, 12.0 );
 
-    double angle_diff = ( target_rel.th() - player.body() ).abs();
-
-    if ( target_dist < 5.0 // XXX magic number XXX
+    if ( ball_dist < 10.0 // XXX magic number XXX
          && angle_diff > 90.0 )
     {
         // assume back dash
@@ -224,17 +336,22 @@ PlayerIntercept::predictTurnCycle( const int cycle,
 
     int n_turn = 0;
 
-    double speed = player.vel().r();
     if ( angle_diff > turn_margin )
     {
-        double max_turn = player_type.effectiveTurn( ServerParam::i().maxMoment(),
-                                                     speed );
-        angle_diff -= max_turn;
-        speed *= player_type.playerDecay();
-        ++n_turn;
+        double speed = data.player_.vel().r();
+
+        speed *= std::pow( data.ptype_.playerDecay(), data.penalty_step_ );
+
+        do
+        {
+            double max_turn = data.ptype_.effectiveTurn( ServerParam::i().maxMoment(), speed );
+            angle_diff -= max_turn;
+            speed *= data.ptype_.playerDecay();
+            ++n_turn;
+        }
+        while ( angle_diff > turn_margin );
     }
 
-    //return bound( 0, n_turn - player.bodyCount(), 5 );
     return n_turn;
 }
 
@@ -243,67 +360,43 @@ PlayerIntercept::predictTurnCycle( const int cycle,
 
 */
 bool
-PlayerIntercept::canReachAfterDash( const int n_turn,
-                                    const int max_dash,
-                                    const PlayerObject & player,
-                                    const PlayerType & player_type,
-                                    const double & control_area,
-                                    const Vector2D & ball_pos ) const
+PlayerIntercept::canReachAfterDash( const PlayerData & data,
+                                    const Vector2D & ball_pos,
+                                    const int total_step,
+                                    const int n_turn ) const
 {
-    const int pos_count = std::min( player.seenPosCount(), player.posCount() );
-    const Vector2D & ppos = ( player.seenPosCount() <= player.posCount()
-                              ? player.seenPos()
-                              : player.pos() );
-    const Vector2D & pvel = ( player.seenVelCount() <= player.velCount()
-                              ? player.seenVel()
-                              : player.vel() );
+    Vector2D inertia_pos = data.inertiaPoint( total_step );
+    Vector2D ball_rel = ball_pos - inertia_pos;
 
-    Vector2D player_pos = inertia_n_step_point( ppos, pvel,
-                                                n_turn + max_dash,
-                                                player_type.playerDecay() );
+    double dash_dist = ball_rel.r() - data.control_area_;
 
-    Vector2D player_to_ball = ball_pos - player_pos;
-    double player_to_ball_dist = player_to_ball.r();
-    player_to_ball_dist -= control_area;
-
-    if ( player_to_ball_dist < 0.0 )
+    if ( dash_dist < 0.0
+         && total_step > data.penalty_step_ )
     {
 #ifdef DEBUG
         dlog.addText( Logger::INTERCEPT,
-                      "______ %d (%.1f %.1f) can reach(1). turn=%d dash=0",
-                      player.unum(),
-                      player.pos().x, player.pos().y,
+                      "______ %d (%.1f %.1f) can reach(1). inertia. total:%d turn:%d dash:0",
+                      data.player_.unum(),
+                      data.player_.pos().x, data.player_.pos().y,
+                      total_step,
                       n_turn );
 #endif
         return true;
     }
 
-    int estimate_dash = player_type.cyclesToReachDistance( player_to_ball_dist );
-    int n_dash = estimate_dash;
-    if ( player.side() != M_world.ourSide() )
-    {
-        n_dash -= bound( 0, pos_count - n_turn, std::min( 6, M_world.ball().seenPosCount() + 1 ) );
-    }
-    else
-    {
-        //n_dash -= bound( 0, pos_count - n_turn, 1 );
-        n_dash -= bound( 0, pos_count - n_turn, std::min( 1, M_world.ball().seenPosCount() ) );
-    }
+    int n_dash = data.ptype_.cyclesToReachDistance( dash_dist );
+    int bonus_step = std::max( 0, data.bonus_step_ - n_turn );
 
-    if ( player.isTackling() )
-    {
-        n_dash += std::max( 0, ServerParam::i().tackleCycles() - player.tackleCount() - 2 );
-    }
-
-    if ( n_dash <= max_dash )
+    if ( n_turn + n_dash - bonus_step + data.penalty_step_ <= total_step )
     {
 #ifdef DEBUG
         dlog.addText( Logger::INTERCEPT,
-                      "______ %d (%.1f %.1f) can reach(2). turn=%d dash=%d(%d) dist=%.3f",
-                      player.unum(),
-                      player.pos().x, player.pos().y,
-                      n_turn, n_dash, estimate_dash,
-                      player_to_ball_dist );
+                      "______ %d (%.1f %.1f) can reach(2). total:%d(>=t:%d+d:%d-b:%d+p:%d) dist=%.2f",
+                      data.player_.unum(),
+                      data.player_.pos().x, data.player_.pos().y,
+                      total_step,
+                      n_turn, n_dash, bonus_step, data.penalty_step_,
+                      dash_dist );
 #endif
         return true;
     }
@@ -316,74 +409,37 @@ PlayerIntercept::canReachAfterDash( const int n_turn,
 
 */
 int
-PlayerIntercept::predictFinal( const PlayerObject & player,
-                               const PlayerType & player_type ) const
+PlayerIntercept::predictFinal( const PlayerData & data ) const
 {
-    const double penalty_x_abs = ServerParam::i().pitchHalfLength() - ServerParam::i().penaltyAreaLength();
-    const double penalty_y_abs = ServerParam::i().penaltyAreaHalfWidth();
+    Vector2D ball_pos = M_ball_cache.back();
+    int ball_step = M_ball_cache.size() - 1;
 
-    const int pos_count = std::min( player.seenPosCount(), player.posCount() );
-    const Vector2D & ppos = ( player.seenPosCount() <= player.posCount()
-                              ? player.seenPos()
-                              : player.pos() );
-    const Vector2D & pvel = ( player.seenVelCount() <= player.velCount()
-                              ? player.seenVel()
-                              : player.vel() );
+    Vector2D inertia_pos = data.inertiaPoint( 100 );
 
-    const Vector2D & ball_pos = M_ball_pos_cache.back();
-    const int ball_step = static_cast< int >( M_ball_pos_cache.size() );
+    int n_turn = predictTurnCycle( data, ball_pos, 100 );
 
-    const double control_area = ( ( player.goalie()
-                                    && ball_pos.absX() > penalty_x_abs
-                                    && ball_pos.absY() < penalty_y_abs )
-                                  ? ServerParam::i().catchableArea()
-                                  : player_type.kickableArea() );
+    double dash_dist = inertia_pos.dist( ball_pos ) - data.control_area_;
 
-    int n_turn = predictTurnCycle( 100,
-                                   player,
-                                   player_type,
-                                   control_area,
-                                   ball_pos );
-
-    Vector2D inertia_pos = player_type.inertiaPoint( ppos, pvel,
-                                                     100 );
-    double dash_dist = inertia_pos.dist( ball_pos );
-    dash_dist -= control_area;
-
-    if ( player.side() != M_world.ourSide() )
-    {
-        dash_dist -= player.distFromSelf() * 0.03;
-    }
-
-    if ( dash_dist < 0.0 )
+    if ( dash_dist < 0.0
+         && ball_step > data.penalty_step_ )
     {
         return ball_step;
     }
 
-    int n_dash = player_type.cyclesToReachDistance( dash_dist );
+    int n_dash = data.ptype_.cyclesToReachDistance( dash_dist );
+    int bonus_step = std::max( 0, data.bonus_step_ - n_turn );
 
-    if ( player.side() != M_world.ourSide() )
-    {
-        n_dash -= bound( 0, pos_count - n_turn, 10 );
-    }
-    else
-    {
-        n_dash -= bound( 0, pos_count - n_turn, 1 );
-    }
-
-    n_dash = std::max( 1, n_dash );
-
+    int step = std::max( ball_step, n_turn + n_dash - bonus_step + data.penalty_step_ );
 #ifdef DEBUG
     dlog.addText( Logger::INTERCEPT,
                   "____No Solution. final point(%.2f %.2f)"
-                  " ball_step=%d n_turn=%d n_dash=%d dash_dist=%.2f",
+                  " step:%d(t:%d+d:%d-b:%d+p:%d dist=%.2f",
                   ball_pos.x, ball_pos.y,
-                  ball_step,
-                  n_turn,
-                  n_dash,
+                  step,
+                  n_turn, n_dash, bonus_step, data.penalty_step_,
                   dash_dist );
 #endif
-    return std::max( ball_step, n_turn + n_dash );
+    return step;
 }
 
 }

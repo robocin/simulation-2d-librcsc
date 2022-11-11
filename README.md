@@ -1,59 +1,97 @@
-## Simulation 2D librcsc
 
-This repository is a fork from the official librcsc, which implements funtamental tools to be used in the Simulation 2D Agent. The related project that uses this library is the [simulation-2d-cpp](https://github.com/robocin/simulation-2d-cpp).
+# Librcsc 
 
+[![License: LGPL v3](https://img.shields.io/badge/License-LGPL_v3-blue.svg)](https://www.gnu.org/licenses/lgpl-3.0)
 
-INTRODUCTION
-============
-The librcsc is the basic library package to develop the RoboCup Soccer
-Simulation client and tools.
+librcsc is a basic library to develop a simulated soccer team and related tools for the RoboCup Soccer Simulation.
+All programs can work with rcssserver-16.
 
-- RoboCup Soccer Simulator Homepage: http://sserver.sf.net/
-- RoboCup Official Homepage: http://www.robocup.org/
+- The RoboCup Soccer Simulator: https://rcsoccersim.github.io/
+- RoboCup Official Homepage: https://www.robocup.org/
 
-- librcsc Homepage: http://rctools.sourceforge.jp/
+## Quick Start
 
+The latest librcsc depends on the following libraries:
+ - Boost 1.38 or later https://www.boost.org/
+ - (optional) Doxygen
+ - (optional) Graphviz
 
-REQUIREMENT
-===========
-librcsc-3.1.3 requires the following libraries:
- - boost-1.32 or later
- - (optional) cppunit-1.12.0 or later
+In the case of Ubuntu 16.04 or later, execute the following commands for installing a basic development environment:
+```
+sudo apt update
+sudo apt install build-essential libboost-all-dev autoconf automake libtool
+```
 
-Please install them first before you start the installation of
-librcsc.
-
-
-INSTALL
-=======
-From the librcsc directory execute:
-
-./configure
+To build the library, execute commands from the root of source directory:
+```
+./bootstrap
+./configure --disable-unit-test
 make
-su
-make install
+```
 
-This will built the neccesary libraries and install them under
-'/usr/local'.
+Once successfully built, you can install the library file and header files to the default installation directory (``/usr/local``): 
+```
+sudo make install
+```
+It is recommended to change the installation directory to the under of your home directory.
+See the next section in detail.
+
+You can generate documetation files using Doxygen and Graphviz.
+```
+sudo apt install doxygen graphviz
+make doc
+```
 
 
-UNINSTAL
-========
-The librcsc can also be easily removed by entering the distribution
-directory and running `make uninstall'. This will remove all the
-files that where installed, but not any directories that were created
-during the installation process.
+## Configuring
+
+If you do not have an administration privilege, you may need to install the library under your home directory and configure some environment variables.
+You can change the installation directory by passing ``--prefix`` option to the configure script:
+```
+./configure --prefix=/path/to/installation
+```
+For example, if you'd like to install under the ``~/local``, type the following:
+```
+./configure --prefix=$HOME/local
+```
+
+See `./configure --help` for other options.
 
 
-CONFIGURING
-===========
-Before you build the librcsc, you must run the `configure' script
-located in the root of the distribution directory.
+### Configuring Environment Variables
 
-The default configuration will set up to install the librcsc
-components under '/usr/local'.
+``~/local`` is supported by the configure script of helios-base, soccerwindow2, fedit2 by default.
+However, if you change the installation directory, you need to modify the followng two environment variables:
 
-You may need administrator privilages to install the librcsc into the
-default location. This locations can be modified by using configure's
-`--prefix=DIR' and related options.  See `configure --help' for more
-details.
+- ``LD_LIBRARY_PATH`` (in ``~/.bashrc``)
+- ``PATH`` (in ``~/.profile``)
+
+The following instructions assume that librcsc was installed under ``~/local``.
+
+Add the following lines at the end of ``~/.bashrc``:
+```
+LD_LIBRARY_PATH=$HOME/local/lib:$LD_LIBRARY_PATH
+export EDITOR RCSSMONITOR LD_LIBRARY_PATH
+```
+This setting is enabled by opening a new terminal or executing ``source ~/.bashrc``.
+
+You can find the existing ``PATH`` variable at the end of ``~/.profile``.
+Add the following at the end of the file, then log out and log in again.
+```
+PATH="$HOME/local/bin:$PATH"
+```
+
+## Uninstall
+
+librcsc can also be easily removed by entering the distribution directory and running:
+```
+make uninstall
+```
+This will remove all the files that where installed, but not any directories that were created during the installation process.
+
+
+## References
+
+- Hidehisa Akiyama, Tomoharu Nakashima, HELIOS Base: An Open Source Package for the RoboCup Soccer 2D Simulation, In Sven Behnke, Manuela Veloso, Arnoud Visser, and Rong Xiong editors, RoboCup2013: Robot World XVII, Lecture Notes in Artificial Intelligence, Springer Verlag, Berlin, 2014. http://dx.doi.org/10.1007/978-3-662-44468-9_46
+- Hidehisa Akiyama, Itsuki Noda, Multi-Agent Positioning Mechanism in the Dynamic Environment, In Ubbo Visser, Fernando Ribeiro, Takeshi Ohashi, and Frank Dellaert, editors, RoboCup 2007: Robot Soccer World Cup XI Lecture Notes in Artificial Intelligence, vol. 5001, Springer, pp.377-384, July 2008. https://doi.org/10.1007/978-3-540-68847-1_38
+

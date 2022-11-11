@@ -1,9 +1,10 @@
 ## Process this file with automake to produce Makefile.in
 
-lib_LTLIBRARIES = librcsc_rcg.la
+noinst_LTLIBRARIES = librcsc_rcg.la
+#lib_LTLIBRARIES = librcsc_rcg.la
 
 librcsc_rcg_la_SOURCES = \
-	holder.cpp \
+	handler.cpp \
 	parser.cpp \
 	parser_v1.cpp \
 	parser_v2.cpp \
@@ -23,8 +24,6 @@ librcsc_rcgincludedir = $(includedir)/rcsc/rcg
 #pkginclude_HEADERS
 librcsc_rcginclude_HEADERS = \
 	handler.h \
-	reader.h \
-	holder.h \
 	parser.h \
 	parser_v1.h \
 	parser_v2.h \

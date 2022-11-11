@@ -35,18 +35,16 @@
 
 #include "formation_static.h"
 
+#include <boost/algorithm/string.hpp>
+
+#include <algorithm>
 #include <cstdio>
 
 namespace rcsc {
 
-using namespace formation;
-
 const std::string FormationStatic::NAME( "Static" );
 
 /*-------------------------------------------------------------------*/
-/*!
-
-*/
 FormationStatic::FormationStatic()
     : Formation()
 {
@@ -54,273 +52,123 @@ FormationStatic::FormationStatic()
 }
 
 /*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-FormationStatic::createDefaultData()
-{
-    createNewRole( 1, "Goalie", Formation::CENTER );
-    createNewRole( 2, "CenterBack", Formation::SIDE );
-    setSymmetryType( 3, 2, "CenterBack" );
-    createNewRole( 4, "SideBack", Formation::SIDE );
-    setSymmetryType( 5, 4, "SideBack" );
-    createNewRole( 6, "DefensiveHalf", Formation::CENTER );
-    createNewRole( 7, "OffensiveHalf", Formation::SIDE );
-    setSymmetryType( 8, 7, "OffensiveHalf" );
-    createNewRole( 9, "SideForward", Formation::SIDE );
-    setSymmetryType( 10, 9, "SideForward" );
-    createNewRole( 11, "CenterForward", Formation::CENTER );
-
-    SampleData data;
-
-    data.ball_.assign( 0.0, 0.0 );
-    data.players_.push_back( Vector2D( -50.0, 0.0 ) );
-    data.players_.push_back( Vector2D( -20.0, -8.0 ) );
-    data.players_.push_back( Vector2D( -20.0, 8.0 ) );
-    data.players_.push_back( Vector2D( -18.0, -18.0 ) );
-    data.players_.push_back( Vector2D( -18.0, 18.0 ) );
-    data.players_.push_back( Vector2D( -15.0, 0.0 ) );
-    data.players_.push_back( Vector2D( 0.0, -12.0 ) );
-    data.players_.push_back( Vector2D( 0.0, 12.0 ) );
-    data.players_.push_back( Vector2D( 10.0, -22.0 ) );
-    data.players_.push_back( Vector2D( 10.0, 22.0 ) );
-    data.players_.push_back( Vector2D( 10.0, 0.0 ) );
-
-    M_samples->addData( *this, data, false );
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-FormationStatic::createNewRole( const int unum,
-                                const std::string & role_name,
-                                const SideType type )
-{
-    if ( unum < 1 || 11 < unum )
-    {
-        std::cerr << __FILE__ << ":" << __LINE__
-                  << " *** ERROR *** invalid unum " << unum
-                  << std::endl;
-        return;
-    }
-
-    setRoleName( unum, role_name );
-
-    switch ( type ) {
-    case Formation::CENTER:
-        setCenterType( unum );
-        break;
-    case Formation::SIDE:
-        setSideType( unum );
-        break;
-    case Formation::SYMMETRY:
-        std::cerr << __FILE__ << ":" << __LINE__
-                  << " ***ERROR*** Invalid side type "
-                  << std::endl;
-        break;
-    default:
-        break;
-    }
-
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-FormationStatic::setRoleName( const int unum,
-                              const std::string & name )
-{
-    if ( unum < 1 || 11 < unum )
-    {
-        std::cerr << __FILE__ << ':' << __LINE__
-                  << " ***ERROR*** invalid unum " << unum
-                  << std::endl;
-        return;
-    }
-
-    M_role_names[unum - 1] = name;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
 std::string
-FormationStatic::getRoleName( const int unum ) const
+FormationStatic::methodName() const
 {
-    if ( unum < 1 || 11 < unum )
-    {
-        std::cerr << __FILE__ << ':' << __LINE__
-                  << " ***ERROR*** Invalid unum"
-                  << std::endl;
-        return std::string( "null" );
-    }
-
-    return M_role_names[unum - 1];
+    return NAME;
 }
 
 /*-------------------------------------------------------------------*/
-/*!
-
-*/
 Vector2D
-FormationStatic::getPosition( const int unum,
+FormationStatic::getPosition( const int num,
                               const Vector2D & ) const
 {
-    if ( unum < 1 || 11 < unum )
+    if ( num < 1 || 11 < num )
     {
-        std::cerr << __FILE__ << ':' << __LINE__
-                  << " **ERROR*** Invalid player number " << unum
-                  << std::endl;
+        std::cerr << "(FormationStatic::getPosition) Invalid position number " << num << std::endl;
         return Vector2D( 0.0, 0.0 );
     }
 
-    return M_pos[unum - 1];
+    return M_positions[num - 1];
 }
 
 /*-------------------------------------------------------------------*/
-/*!
-
-*/
 void
 FormationStatic::getPositions( const Vector2D & focus_point,
                                std::vector< Vector2D > & positions ) const
 {
     positions.clear();
 
-    for ( int unum = 1; unum <= 11; ++unum )
+    for ( int num = 1; num <= 11; ++num )
     {
-        positions.push_back( getPosition( unum, focus_point ) );
+        positions.push_back( getPosition( num, focus_point ) );
     }
 }
 
 /*-------------------------------------------------------------------*/
-/*!
-
-*/
-void
-FormationStatic::train()
-{
-
-
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
 bool
-FormationStatic::readConf( std::istream & is )
+FormationStatic::train( const FormationData & data )
 {
-    if ( ! readPlayers( is ) )
+    //std::cerr << "Static method never support any training" << std::endl;
+
+    if ( data.dataCont().empty() )
     {
         return false;
+    }
+
+    if ( data.dataCont().size() > 1 )
+    {
+        std::cerr << "(FormationStatic::train) too many data. size = " << data.dataCont().size() << std::endl;
+    }
+
+    if ( data.dataCont().front().players_.size() != M_positions.size() )
+    {
+        std::cerr << "(FormationStatic::train) Invalid player array size " << std::endl;
+        return false;
+    }
+
+    for ( size_t i = 0; i < M_positions.size(); ++i )
+    {
+        M_positions[i] = data.dataCont().front().players_[i];
     }
 
     return true;
 }
 
 /*-------------------------------------------------------------------*/
-/*!
-
-*/
-bool
-FormationStatic::readPlayers( std::istream & is )
+FormationData::Ptr
+FormationStatic::toData() const
 {
-    int n_read = 0;
+    FormationData::Ptr ptr( new FormationData() );
 
-    std::string line_buf;
+    FormationData::Data d;
 
-    for ( int i = 0; i < 11; ++i )
+    d.ball_.assign( 0.0, 0.0 );
+    for ( size_t i = 0; i < 11; ++i )
     {
-        while ( std::getline( is, line_buf ) )
-        {
-            if ( line_buf.empty()
-                 || line_buf[0] == '#'
-                 || ! line_buf.compare( 0, 2, "//" ) )
-            {
-                continue;
-            }
-
-            int unum;
-            char role_name[128];
-            double pos_x, pos_y;
-
-            if ( std::sscanf( line_buf.c_str(),
-                              " %d %s %lf %lf ",
-                              &unum, role_name, &pos_x, &pos_y ) != 4 )
-            {
-                continue;
-            }
-
-            if ( unum != i + 1 )
-            {
-                std::cerr << __FILE__ << ':' << __LINE__
-                          << " ***ERROR*** Invalid formation formart ["
-                          << line_buf << "]"
-                          << std::endl;
-                return false;
-            }
-
-            M_pos[i].assign( pos_x, pos_y );
-            M_role_names[i] = role_name;
-            ++n_read;
-            break;
-        }
+        d.players_.push_back( M_positions[i] );
     }
 
-    if ( n_read != 11 )
-    {
-        std::cerr << __FILE__ << ':' << __LINE__
-                  << " ***ERROR*** Invalid formation format."
-                  << " The number of read player is " << n_read
-                  << std::endl;
-        return false;
-    }
+    ptr->addData( d );
 
-    return true;
-}
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-std::ostream &
-FormationStatic::printConf( std::ostream & os ) const
-{
-    for ( int i = 0; i < 11; ++i )
-    {
-        os << i + 1 << ' '
-           << M_role_names[i] << ' '
-           << M_pos[i].x << ' '
-           << M_pos[i].y << '\n';
-    }
-
-    return os << std::flush;
-}
-
-
-/*-------------------------------------------------------------------*/
-/*!
-
-*/
-namespace {
-
-Formation::Ptr
-create()
-{
-    Formation::Ptr ptr( new FormationStatic() );
     return ptr;
 }
 
-rcss::RegHolder f = Formation::creators().autoReg( &create,
-                                                   FormationStatic::NAME );
+/*-------------------------------------------------------------------*/
+namespace {
+const std::string tab = "  ";
+}
 
+/*-------------------------------------------------------------------*/
+bool
+FormationStatic::printData( std::ostream & os ) const
+{
+    os << tab << "\"data\"" << " : [\n";
+    os << tab << tab << "{\n";
+    os << tab << tab << tab << "\"index\" : " << 0 << ",\n";
+    os << tab << tab << tab << "\"ball\" : { \"x\" :   0.00, \"y\" :   0.00 }";
+
+    char buf[128];
+    for ( size_t i = 0; i < M_positions.size(); ++i )
+    {
+        os << ",\n";
+        snprintf( buf, sizeof( buf ) - 1,
+                  "  %s\"%zd\" : { \"x\" : % 6.2f, \"y\" : % 6.2f }",
+                  ( i < 9 ? " " : "" ), i + 1, M_positions[i].x, M_positions[i].y );
+        os << tab << tab << tab << buf;
+        // os << tab << tab << tab;
+        // os << '"' << i + 1 << '"' // number
+        //    << " : { "
+        //    << "\"x\" : " << M_positions[i].x << ", "
+        //    << "\"y\" : " << M_positions[i].y
+        //    << " }";
+    }
+
+    os << tab << tab << '}';
+    os << "\n"
+       << tab << "]";
+
+    return true;
 }
 
 }

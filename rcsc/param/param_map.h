@@ -32,9 +32,9 @@
 #ifndef RCSC_PARAM_PARAM_MAP_H
 #define RCSC_PARAM_PARAM_MAP_H
 
-#include <boost/shared_ptr.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include <memory>
 #include <vector>
 #include <map>
 #include <string>
@@ -63,7 +63,7 @@ struct NegateBool {
 
 private:
     // not used
-    NegateBool();
+    NegateBool() = delete;
 };
 
 /*!
@@ -86,7 +86,7 @@ struct BoolSwitch {
 
 private:
     // not used
-    BoolSwitch();
+    BoolSwitch() = delete;
 };
 
 
@@ -121,7 +121,7 @@ struct NegateSwitch {
 
 private:
     // not used
-    NegateSwitch();
+    NegateSwitch() = delete;
 };
 
 /*-------------------------------------------------------------------*/
@@ -130,6 +130,11 @@ private:
   \brief abstract parameter
 */
 class ParamEntity {
+public:
+
+    //! ParamEntity smart pointer type
+    typedef std::shared_ptr< ParamEntity > Ptr;
+
 private:
     //! long parameter name
     std::string M_long_name;
@@ -139,7 +144,7 @@ private:
     std::string M_description;
 
     //! not used
-    ParamEntity();
+    ParamEntity() = delete;
 
 protected:
 
@@ -152,9 +157,9 @@ protected:
     ParamEntity( const std::string & long_name,
                 const std::string & short_name,
                 const char * description = "" )
-        : M_long_name( long_name )
-        , M_short_name( short_name )
-        , M_description( description )
+        : M_long_name( long_name ),
+          M_short_name( short_name ),
+          M_description( description )
       { }
 
 public:
@@ -170,8 +175,7 @@ public:
       \brief get long name of parameter
       \return const reference to the name string
     */
-    const
-    std::string & longName() const
+    const std::string & longName() const
       {
           return M_long_name;
       }
@@ -180,8 +184,7 @@ public:
       \brief get long name of parameter
       \return const reference to the short string
     */
-    const
-    std::string & shortName() const
+    const std::string & shortName() const
       {
           return M_short_name;
       }
@@ -189,8 +192,7 @@ public:
       \brief get description message
       \return const reference to the descriptin message
     */
-    const
-    std::string & description() const
+    const std::string & description() const
       {
           return M_description;
       }
@@ -236,52 +238,6 @@ public:
 
 };
 
-/*!
-  \brief type of ParamEntity pointer
- */
-typedef boost::shared_ptr< ParamEntity > ParamPtr;
-
-// /*!
-//   \class ParamPrinter
-//   \brief template value printer
-//  */
-// template < typename T >
-// class ParamPrinter {
-// public:
-//     /*!
-//       \brief print value to the output stream
-//       \param os reference to the output stream
-//       \param value output value
-//       \return reference to the output stream
-//      */
-//     std::ostream & operator()( std::ostream & os,
-//                                const T & value ) const
-//       {
-//           return os << value;
-//       }
-// };
-
-// /*!
-//   \class ParamPrinter< std::string >
-//   \brief std::string specialized value printer
-//  */
-// template <>
-// class ParamPrinter< std::string > {
-// public:
-//     /*!
-//       \brief print value to the output stream
-//       \param os reference to the output stream
-//       \param value output value
-//       \return reference to the output stream
-//      */
-//     std::ostream & operator()( std::ostream & os,
-//                                const std::string & value ) const
-//       {
-//           return os << '"' << value << '"';
-//       }
-// };
-
-
 /*-------------------------------------------------------------------*/
 /*!
   \class ParamGeneric
@@ -310,8 +266,8 @@ public:
                   const std::string & short_name,
                   Type * value_ptr,
                   const char * description = "" )
-        : ParamEntity( long_name, short_name, description )
-        , M_value_ptr( value_ptr )
+        : ParamEntity( long_name, short_name, description ),
+          M_value_ptr( value_ptr )
       {
           assert( value_ptr );
       }
@@ -361,17 +317,7 @@ public:
      */
     std::ostream & printValue( std::ostream & os ) const
       {
-          //return ParamPrinter< Type >()( os, *M_value_ptr );
           return printValueImpl( os, *M_value_ptr );
-//           if ( typeid( ValueType ) == typeid( std::string ) )
-//           {
-//               os << '"' << *M_value_ptr << '"';
-//           }
-//           else
-//           {
-//               os << *M_value_ptr;
-//           }
-//           return os;
       }
 
 };
@@ -403,9 +349,9 @@ public:
                   const std::string & short_name,
                   bool * value_ptr,
                   const char * description = "" )
-        : ParamEntity( long_name, short_name, description )
-        , M_negate( false )
-        , M_value_ptr( value_ptr )
+        : ParamEntity( long_name, short_name, description ),
+          M_negate( false ),
+          M_value_ptr( value_ptr )
       {
           assert( value_ptr );
       }
@@ -421,9 +367,9 @@ public:
                   const std::string & short_name,
                   const NegateBool & value,
                   const char * description = "" )
-        : ParamEntity( long_name, short_name, description )
-        , M_negate( true )
-        , M_value_ptr( value.ptr_ )
+        : ParamEntity( long_name, short_name, description ),
+          M_negate( true ),
+          M_value_ptr( value.ptr_ )
       {
           assert( M_value_ptr );
       }
@@ -470,9 +416,9 @@ public:
                  const std::string & short_name,
                  bool * value_ptr,
                  const char * description = "" )
-        : ParamEntity( long_name, short_name, description )
-        , M_negate( false )
-        , M_value_ptr( value_ptr )
+        : ParamEntity( long_name, short_name, description ),
+          M_negate( false ),
+          M_value_ptr( value_ptr )
       {
           assert( value_ptr );
       }
@@ -489,9 +435,9 @@ public:
                  const std::string & short_name,
                  const NegateSwitch & value,
                  const char * description = "" )
-        : ParamEntity( long_name, short_name, description )
-        , M_negate( true )
-        , M_value_ptr( value.ptr_ )
+        : ParamEntity( long_name, short_name, description ),
+          M_negate( true ),
+          M_value_ptr( value.ptr_ )
       {
           assert( M_value_ptr );
       }
@@ -547,7 +493,7 @@ private:
         //! reference to parameter container
         ParamMap & M_param_map;
         //! not used
-        Registrar();
+        Registrar() = delete;
     public:
         /*!
           \brief construct with parameter map
@@ -572,17 +518,24 @@ private:
                                 ValueType * value_ptr,
                                 const char * description = "" )
           {
-              if ( value_ptr == static_cast< ValueType * >( 0 ) )
+              if ( ! checkName( long_name, short_name ) )
               {
-                  std::cerr << "***ERROR*** detected null pointer for the option "
-                            << long_name << std::endl;
+                  M_param_map.M_valid = false;
                   return *this;
               }
 
-              ParamPtr ptr( new ParamGeneric< ValueType >( long_name,
-                                                           short_name,
-                                                           value_ptr,
-                                                           description ) );
+              if ( ! value_ptr )
+              {
+                  std::cerr << "***ERROR*** detected null pointer for the option "
+                            << long_name << std::endl;
+                  M_param_map.M_valid = false;
+                  return *this;
+              }
+
+              ParamEntity::Ptr ptr( new ParamGeneric< ValueType >( long_name,
+                                                                   short_name,
+                                                                   value_ptr,
+                                                                   description ) );
               M_param_map.add( ptr );
               return *this;
           }
@@ -625,7 +578,19 @@ private:
                                 const std::string & short_name,
                                 const NegateSwitch & value,
                                 const char * description = "" );
+
+    private:
+
+        /*!
+         \brief check if given names are valid or not.
+         \return checked result
+        */
+        bool checkName( const std::string & long_nam,
+                        const std::string & short_name ) const;
     };
+
+    //! validation flag
+    bool M_valid;
 
     //! parameter registrar
     Registrar M_registrar;
@@ -634,13 +599,18 @@ private:
     std::string M_group_name;
 
     //! parameter container
-    std::vector< ParamPtr > M_parameters;
+    std::vector< ParamEntity::Ptr > M_parameters;
 
     //! long name option map
-    std::map< std::string, ParamPtr > M_long_name_map;
+    std::map< std::string, ParamEntity::Ptr > M_long_name_map;
 
     //! short name option map
-    std::map< std::string, ParamPtr > M_short_name_map;
+    std::map< std::string, ParamEntity::Ptr > M_short_name_map;
+
+
+    // no copyable
+    ParamMap( const ParamMap & );
+    ParamMap & operator=( const ParamMap & );
 
 public:
 
@@ -648,7 +618,8 @@ public:
       \brief default constructor. create registrer
      */
     ParamMap()
-        : M_registrar( *this )
+        : M_valid( true ),
+          M_registrar( *this )
       { }
 
     /*!
@@ -657,8 +628,9 @@ public:
      */
     explicit
     ParamMap( const std::string & group_name )
-        : M_registrar( *this )
-        , M_group_name( group_name )
+        : M_valid( true ),
+          M_registrar( *this ),
+          M_group_name( group_name )
       { }
 
     /*!
@@ -668,11 +640,19 @@ public:
       { }
 
     /*!
+      \brief check if all registered options are valid or not.
+      \return checked result.
+     */
+    bool isValid() const
+      {
+          return M_valid;
+      }
+
+    /*!
       \brief get the name of parameter group
       \return name string
      */
-    const
-    std::string & groupName() const
+    const std::string & groupName() const
       {
           return M_group_name;
       }
@@ -681,8 +661,7 @@ public:
       \brief get the container of all parameters
       \return const reference to the container instance
      */
-    const
-    std::vector< ParamPtr > & parameters() const
+    const std::vector< ParamEntity::Ptr > & parameters() const
       {
           return M_parameters;
       }
@@ -691,8 +670,7 @@ public:
       \brief get the long name parameter map
       \return const reference to the container instance
      */
-    const
-    std::map< std::string, ParamPtr > & longNameMap() const
+    const std::map< std::string, ParamEntity::Ptr > & longNameMap() const
       {
           return M_long_name_map;
       }
@@ -701,17 +679,10 @@ public:
       \brief get the short name parameter map
       \return const reference to the container instance
      */
-    const
-    std::map< std::string, ParamPtr > & shortNameMap() const
+    const std::map< std::string, ParamEntity::Ptr > & shortNameMap() const
       {
           return M_short_name_map;
       }
-
-//     /*
-//       \brief copy parameter map from argument
-//       \param param_map reference to the parameter map
-//      */
-//     ParamMap & add( ParamMap & param_map );
 
     /*!
       \brief get a parameter registrar
@@ -726,7 +697,7 @@ public:
       \brief add new parameter entry
       \param param shared pointer of parameter entry
      */
-    Registrar & add( ParamPtr param );
+    Registrar & add( ParamEntity::Ptr param );
 
     /*!
       \brief remove registered parameter pointer
@@ -739,14 +710,14 @@ public:
       \param long_name long version parameter name string
       \return parameter entry pointer. if not found, NULL is returned.
      */
-    ParamPtr findLongName( const std::string & long_name );
+    ParamEntity::Ptr findLongName( const std::string & long_name );
 
     /*!
       \brief get parameter entry that has the argument name
       \param short_name set of the parameter name character
       \return parameter entry pointer. if not found, NULL is returned.
      */
-    ParamPtr findShortName( const std::string & short_name );
+    ParamEntity::Ptr findShortName( const std::string & short_name );
 
     /*!
       \brief output parameter usage by command line option style

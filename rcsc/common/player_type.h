@@ -37,7 +37,7 @@
 #include <rcsc/soccer_math.h>
 #include <rcsc/types.h>
 
-#include <map>
+#include <unordered_map>
 #include <vector>
 #include <iostream>
 
@@ -71,8 +71,8 @@ private:
     //
 
     double M_kickable_area; //!< cached kickable area
-    double M_reliable_catchable_dist; //!< cached reliable catchable dist
-    double M_max_catchable_dist; //!< cached maximum catchable dist
+    double M_reliable_catchable_dist; //!< cached reliable catchable dist (the length of diagonal line)
+    double M_max_catchable_dist; //!< cached maximum catchable dist (the length of diagonal line)
 
     // if player's dprate & effort is not enough,
     // player never reach player_speed_max
@@ -97,6 +97,14 @@ public:
     PlayerType();
 
     /*!
+      \brief create the copy of existing player type, but id is changed.
+      \param other exsiting player type instance
+      \param id new player type id
+     */
+    PlayerType( const PlayerType & other,
+                const int id );
+
+    /*!
       \brief construct with message from rcssserver
       \param server_msg raw message from rcssserver
       \param version client version that determins message protocol
@@ -112,6 +120,14 @@ public:
     PlayerType( const rcg::player_type_t & from );
 
     /*!
+      \brief create new player type with randomly generated parameters, same as server's algorithm
+      \param seed random seed
+     */
+    template< typename DeltaFunc >
+    PlayerType( const int id,
+                DeltaFunc & delta );
+
+    /*!
       \brief conver to the monitor protocol format
       \param to reference to the data variable.
      */
@@ -121,7 +137,7 @@ public:
       \brief convert to the rcss parameter message
       \return parameter message string
      */
-    std::string toStr() const;
+    std::string toServerString() const;
 
 private:
 
@@ -162,8 +178,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & playerSpeedMax() const
+    double playerSpeedMax() const
       {
           return M_player_speed_max;
       }
@@ -172,8 +187,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & staminaIncMax() const
+    double staminaIncMax() const
       {
           return M_stamina_inc_max;
       }
@@ -182,8 +196,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & playerDecay() const
+    double playerDecay() const
       {
           return M_player_decay;
       }
@@ -192,8 +205,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & inertiaMoment() const
+    double inertiaMoment() const
       {
           return M_inertia_moment;
       }
@@ -202,8 +214,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & dashPowerRate() const
+    double dashPowerRate() const
       {
           return M_dash_power_rate;
       }
@@ -212,8 +223,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & playerSize() const
+    double playerSize() const
       {
           return M_player_size;
       }
@@ -222,8 +232,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & kickableMargin() const
+    double kickableMargin() const
       {
           return M_kickable_margin;
       }
@@ -232,8 +241,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & kickRand() const
+    double kickRand() const
       {
           return M_kick_rand;
       }
@@ -242,8 +250,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & extraStamina() const
+    double extraStamina() const
       {
           return M_extra_stamina;
       }
@@ -252,8 +259,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & effortMax() const
+    double effortMax() const
       {
           return M_effort_max;
       }
@@ -262,8 +268,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & effortMin() const
+    double effortMin() const
       {
           return M_effort_min;
       }
@@ -272,8 +277,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & kickPowerRate() const
+    double kickPowerRate() const
       {
           return M_kick_power_rate;
       }
@@ -282,8 +286,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & foulDetectProbability() const
+    double foulDetectProbability() const
       {
           return M_foul_detect_probability;
       }
@@ -292,8 +295,7 @@ public:
       \brief get the player_type parameter
       \return player_type parameter
      */
-    const
-    double & catchAreaLengthStretch() const
+    double catchAreaLengthStretch() const
       {
           return M_catchable_area_l_stretch;
       }
@@ -305,39 +307,65 @@ public:
       \brief get the maximum kickable radius
       \return maximum kickable radius
      */
-    const
-    double & kickableArea() const
+    double kickableArea() const
       {
           return M_kickable_area;
       }
 
     /*!
-      \brief get reliable catchable distance
-      \return threshold distance not to fail
+      \brief get the max length of the catch area (ServerParam + stretch length), which the catch may be a failure.
+      \return the value calculated from ServerParam and strech parameter
+     */
+    double maxCatchLength() const;
+
+    /*!
+      \brief get the reliable length of the catch area (ServerParam - stretch length). the catch is always success if ball is within the rectangle of this length.
+      \return the value calculated from ServerParam and the strech parameter
+     */
+    double reliableCatchLength() const;
+
+
+    /*!
+      \brief get the reliable distance for the catch command. This value is the length of the diagonal line of the reliable catchable area rectangle.
+      \return the diagonal line length of the reliable catch area rectangle. if server::catch_probability < 1.0, 0.0 is always returned.
      */
     double reliableCatchableDist() const;
 
     /*!
-      \brief get reliable catchable distance
+      \brief get reliable catchable distance. This value is the length of the diagonal line of the reliable catchable area rectangle.
       \param prob threshold of catch probability
       \return threshold distance that catch probability is greater equal to prob.
       if catch_probalibity server parameter is not 1, this method returns 0.0
      */
     double reliableCatchableDist( const double prob ) const;
 
+private:
     /*!
-      \brief get catch probability
+      \brief get the probability of the catch command being succeeded
       \param dist distance of player and ball
       \return probability of successful catching
      */
     double getCatchProbability( const double dist ) const;
+public:
+    /*!
+      \brief get the probability of the catch command being succeeded
+      \param player_pos player position
+      \param player_body player's body direction
+      \param ball_pos ball position
+      \param dist_buf distance buffer
+      \param dir_buf angle buffer
+     */
+    double getCatchProbability( const Vector2D & player_pos,
+                                const AngleDeg & player_body,
+                                const Vector2D & ball_pos,
+                                const double dist_buf = 0.055,
+                                const double dir_buf = 0.5 ) const;
 
     /*!
-      \brief get the maximum catchable distance
+      \brief get the maximum distance for the catch. This value is the length of the diagonal line of the max (maybe unreliable) catchable area rectangle.
       \return maximum catchable distance
      */
-    const
-    double & maxCatchableDist() const
+    double maxCatchableDist() const
       {
           return M_max_catchable_dist;
       }
@@ -346,8 +374,7 @@ public:
       \brief get the reachable speed max
       \return reachable speed max
      */
-    const
-    double & realSpeedMax() const
+    double realSpeedMax() const
       {
           return M_real_speed_max;
       }
@@ -356,8 +383,7 @@ public:
       \brief get the squared player speed max
       \return squared player speed max
      */
-    const
-    double & playerSpeedMax2() const
+    double playerSpeedMax2() const
       {
           return M_player_speed_max2;
       }
@@ -366,8 +392,7 @@ public:
       \brief get the squared real speed max
       \return squared real speed max
      */
-    const
-    double & realSpeedMax2() const
+    double realSpeedMax2() const
       {
           return M_real_speed_max2;
       }
@@ -376,8 +401,7 @@ public:
       \brief get dash reachable distance table
       \return const reference to the distance table container
      */
-    const
-    std::vector< double > & dashDistanceTable() const
+    const std::vector< double > & dashDistanceTable() const
       {
           return M_dash_distance_table;
       }
@@ -622,6 +646,9 @@ public:
       \return reference to the output stream
      */
     std::ostream & print( std::ostream & os ) const;
+
+    static
+    PlayerType create( const int seed );
 };
 
 
@@ -636,12 +663,16 @@ public:
 class PlayerTypeSet {
 public:
     //! typedef of the player type contaier. key: id, value: player type
-    typedef std::map< int, PlayerType > PlayerTypeMap;
+    typedef std::unordered_map< int, PlayerType > Map;
 private:
-    //! map for hetero player id and parameter
-    PlayerTypeMap M_player_type_map;
 
-    //! dummy player type parameter
+    //! heterogeneous player type container
+    Map M_player_type_map;
+
+    //! default player type
+    PlayerType M_default_type;
+
+    //! dummy player type
     PlayerType M_dummy_type;
 
     /*!
@@ -667,11 +698,22 @@ public:
       \return const reference to the player type set instance
      */
     inline
-    static const
-    PlayerTypeSet & i()
+    static
+    const PlayerTypeSet & i()
       {
           return instance();
       }
+
+    /*!
+      \brief erase all player types. this method should be used only by monitor/logplayer.
+     */
+    void clear();
+
+    /*!
+      \brief generate player type set with given random seed.
+      \param seed random seed only for this trial
+     */
+    void generate( const int seed );
 
     /*!
       \brief regenerate default player type parameter using server param
@@ -699,10 +741,14 @@ public:
       \brief get player type map
       \return const reference to the player type map object
      */
-    const
-    PlayerTypeMap & playerTypeMap() const
+    const Map & playerTypeMap() const
       {
           return M_player_type_map;
+      }
+
+    const PlayerType & defaultType() const
+      {
+          return M_default_type;
       }
 
     /*!
@@ -710,8 +756,7 @@ public:
       \param id wanted player type Id
       \return const pointer to the player type parameter object
      */
-    const
-    PlayerType * get( const int id ) const;
+    const PlayerType * get( const int id ) const;
 
     /*!
       \brief put parameters to the output stream

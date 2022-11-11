@@ -324,7 +324,7 @@ ParserV5::parseShow( const int n_line,
         }
     }
 
-    handler.handleShow( time, show );
+    handler.handleShow( show );
 
     return true;
 }

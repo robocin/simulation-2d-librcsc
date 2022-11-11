@@ -46,9 +46,9 @@ namespace rcsc {
 PlayerInitCommand::PlayerInitCommand( const std::string & team_name,
                                       const double & version,
                                       const bool goalie )
-    : M_team_name( team_name )
-    , M_version( version )
-    , M_goalie( goalie )
+    : M_team_name( team_name ),
+      M_version( version ),
+      M_goalie( goalie )
 {
 
 }
@@ -58,7 +58,7 @@ PlayerInitCommand::PlayerInitCommand( const std::string & team_name,
 
 */
 std::ostream &
-PlayerInitCommand::toStr( std::ostream & to ) const
+PlayerInitCommand::toCommandString( std::ostream & to ) const
 {
     if ( M_goalie && M_version >= 4.0 )
     {
@@ -82,8 +82,8 @@ PlayerInitCommand::toStr( std::ostream & to ) const
 */
 PlayerReconnectCommand::PlayerReconnectCommand( const std::string & team_name,
                                                 const int unum )
-    : M_team_name( team_name )
-    , M_unum( unum )
+    : M_team_name( team_name ),
+      M_unum( unum )
 {
 
 }
@@ -93,7 +93,7 @@ PlayerReconnectCommand::PlayerReconnectCommand( const std::string & team_name,
 
 */
 std::ostream &
-PlayerReconnectCommand::toStr( std::ostream & to ) const
+PlayerReconnectCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(reconnect " << M_team_name << " " << M_unum << ")";
 }
@@ -112,7 +112,7 @@ PlayerByeCommand::PlayerByeCommand()
 
 */
 std::ostream &
-PlayerByeCommand::toStr( std::ostream & to ) const
+PlayerByeCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(bye)";
 }
@@ -122,7 +122,7 @@ PlayerByeCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerMoveCommand::toStr( std::ostream & to ) const
+PlayerMoveCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(move " << M_x << " " << M_y << ")";
 }
@@ -132,7 +132,7 @@ PlayerMoveCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerDashCommand::toStr( std::ostream & to ) const
+PlayerDashCommand::toCommandString( std::ostream & to ) const
 {
     to << "(dash " << M_power;
     if ( M_dir != 0.0 )
@@ -147,7 +147,7 @@ PlayerDashCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerTurnCommand::toStr( std::ostream & to ) const
+PlayerTurnCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(turn " << M_moment << ")";
 }
@@ -157,7 +157,7 @@ PlayerTurnCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerKickCommand::toStr( std::ostream & to ) const
+PlayerKickCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(kick " << M_power << " " << M_dir << ")";
 }
@@ -167,7 +167,7 @@ PlayerKickCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerCatchCommand::toStr( std::ostream & to ) const
+PlayerCatchCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(catch " << M_dir << ")";
 }
@@ -177,7 +177,7 @@ PlayerCatchCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerTackleCommand::toStr( std::ostream & to ) const
+PlayerTackleCommand::toCommandString( std::ostream & to ) const
 {
     to << "(tackle " << M_power_or_dir;
     if ( M_foul )
@@ -194,7 +194,7 @@ PlayerTackleCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerTurnNeckCommand::toStr( std::ostream & to ) const
+PlayerTurnNeckCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(turn_neck " << M_moment << ")";
 }
@@ -204,7 +204,7 @@ PlayerTurnNeckCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerChangeViewCommand::toStr( std::ostream & to ) const
+PlayerChangeViewCommand::toCommandString( std::ostream & to ) const
 {
     to << "(change_view " << M_width.str();
 
@@ -225,7 +225,7 @@ PlayerChangeViewCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerSayCommand::toStr( std::ostream & to ) const
+PlayerSayCommand::toCommandString( std::ostream & to ) const
 {
     if ( ! M_message.empty() )
     {
@@ -246,7 +246,7 @@ PlayerSayCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerPointtoCommand::toStr( std::ostream & to ) const
+PlayerPointtoCommand::toCommandString( std::ostream & to ) const
 {
     if ( M_on )
     {
@@ -264,7 +264,7 @@ PlayerPointtoCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerAttentiontoCommand::toStr( std::ostream & to ) const
+PlayerAttentiontoCommand::toCommandString( std::ostream & to ) const
 {
     if ( M_side != NONE )
     {
@@ -285,7 +285,7 @@ PlayerAttentiontoCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerCLangCommand::toStr( std::ostream & to ) const
+PlayerCLangCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(clang (ver " << M_min << " " << M_max << "))";
 }
@@ -295,7 +295,7 @@ PlayerCLangCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerEarCommand::toStr( std::ostream & to ) const
+PlayerEarCommand::toCommandString( std::ostream & to ) const
 {
     to << "(ear (";
 
@@ -339,7 +339,7 @@ PlayerEarCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerSenseBodyCommand::toStr( std::ostream & to ) const
+PlayerSenseBodyCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(sense_body)";
 }
@@ -349,7 +349,7 @@ PlayerSenseBodyCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerScoreCommand::toStr( std::ostream & to ) const
+PlayerScoreCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(score)";
 }
@@ -359,7 +359,7 @@ PlayerScoreCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerCompressionCommand::toStr( std::ostream & to ) const
+PlayerCompressionCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(compression " << M_level << ")";
 }
@@ -369,7 +369,7 @@ PlayerCompressionCommand::toStr( std::ostream & to ) const
 
 */
 std::ostream &
-PlayerDoneCommand::toStr( std::ostream & to ) const
+PlayerDoneCommand::toCommandString( std::ostream & to ) const
 {
     return to << "(done)";
 }

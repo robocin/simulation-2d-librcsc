@@ -165,7 +165,7 @@ IntentionDribble2008::execute( PlayerAgent * agent )
 
     if ( wm.gameMode().type() == GameMode::PenaltyTaken_ )
     {
-        const PlayerObject * opp_goalie = wm.getOpponentGoalie();
+        const AbstractPlayerObject * opp_goalie = wm.getTheirGoalie();
         if ( opp_goalie )
         {
             agent->setNeckAction( new Neck_TurnToPoint( opp_goalie->pos() ) );
@@ -180,7 +180,7 @@ IntentionDribble2008::execute( PlayerAgent * agent )
         if ( wm.self().pos().x > 36.0
              && wm.self().pos().absY() < 20.0 )
         {
-            agent->setNeckAction( new Neck_TurnToGoalieOrScan() );
+            agent->setNeckAction( new Neck_TurnToGoalieOrScan( 2 ) );
         }
         else
         {
@@ -235,7 +235,7 @@ IntentionDribble2008::checkOpponent( const WorldModel & world )
     if ( ball_next.x > ServerParam::i().theirPenaltyAreaLineX()
          && ball_next.absY() < ServerParam::i().penaltyAreaHalfWidth() )
     {
-        const PlayerObject * opp_goalie = world.getOpponentGoalie();
+        const AbstractPlayerObject * opp_goalie = world.getTheirGoalie();
         if ( opp_goalie
              && opp_goalie->distFromBall() < ( ServerParam::i().catchableArea()
                                                + ServerParam::i().defaultPlayerSpeedMax() )

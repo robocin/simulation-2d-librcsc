@@ -34,29 +34,31 @@
 
 #include <rcsc/types.h>
 
-#include <boost/cstdint.hpp>
-
 #include <string>
+#include <cmath>
+#include <cstdint>
 
 namespace rcsc {
 namespace rcg {
 
 
 //! type of the 16bits integer value
-typedef boost::int16_t Int16;
+typedef std::int16_t Int16;
 //! type of the unsigned 16bits integer value
-typedef boost::uint16_t UInt16;
+typedef std::uint16_t UInt16;
 //! type of the 32bits integer value
-typedef boost::int32_t Int32;
+typedef std::int32_t Int32;
 //! type of the unsigned 32bits integer value
-typedef boost::int32_t UInt32;
+typedef std::int32_t UInt32;
 
 /*!
   \brief max length of color name string.
 
   Actually, this variable is not used.
 */
-const int COLOR_NAME_MAX = 64;
+enum {
+    COLOR_NAME_MAX = 64
+};
 
 /*!
   \enum DispInfoMode
@@ -110,6 +112,7 @@ enum PlayerStatus {
     FOUL_CHARGED     = 0x00020000, // player is frozen by intentional tackle foul
     YELLOW_CARD     = 0x00040000,
     RED_CARD        = 0x00080000,
+    ILLEGAL_DEFENSE = 0x00100000,
 };
 
 
@@ -565,10 +568,10 @@ struct BallT {
       \brief initialize all variables by 0
      */
     BallT()
-        : x_( 0.0 )
-        , y_( 0.0 )
-        , vx_( SHOWINFO_SCALE2F )
-        , vy_( SHOWINFO_SCALE2F )
+        : x_( 0.0 ),
+          y_( 0.0 ),
+          vx_( SHOWINFO_SCALE2F ),
+          vy_( SHOWINFO_SCALE2F )
       { }
 
     /*!
@@ -577,9 +580,14 @@ struct BallT {
      */
     bool hasVelocity() const
       {
-          return vx_ != SHOWINFO_SCALE2F
-              && vy_ != SHOWINFO_SCALE2F;
+          return vx_ != SHOWINFO_SCALE2F;
+          //&& vy_ != SHOWINFO_SCALE2F;
       }
+
+    double x() const { return x_; }
+    double y() const { return y_; }
+    double deltaX() const { return vx_; }
+    double deltaY() const { return vy_; }
 };
 
 /*!
@@ -630,37 +638,37 @@ struct PlayerT {
       \brief initialize all variables
      */
     PlayerT()
-        : side_( 'n' )
-        , unum_( 0 )
-        , type_( -1 )
-        , view_quality_( 'h' )
-        , focus_side_( 'n' )
-        , focus_unum_( 0 )
-        , state_( 0 )
-        , x_( 0.0f )
-        , y_( 0.0f )
-        , vx_( SHOWINFO_SCALE2F )
-        , vy_( SHOWINFO_SCALE2F )
-        , body_( 0.0f )
-        , neck_( SHOWINFO_SCALE2F )
-        , point_x_( SHOWINFO_SCALE2F )
-        , point_y_( SHOWINFO_SCALE2F )
-        , view_width_( 0.0f )
-        , stamina_( SHOWINFO_SCALE2F )
-        , effort_( SHOWINFO_SCALE2F )
-        , recovery_( SHOWINFO_SCALE2F )
-        , stamina_capacity_( -1.0f )
-        , kick_count_( 0 )
-        , dash_count_( 0 )
-        , turn_count_( 0 )
-        , catch_count_( 0 )
-        , move_count_( 0 )
-        , turn_neck_count_( 0 )
-        , change_view_count_( 0 )
-        , say_count_( 0 )
-        , tackle_count_( 0 )
-        , pointto_count_( 0 )
-        , attentionto_count_( 0 )
+        : side_( 'n' ),
+          unum_( 0 ),
+          type_( -1 ),
+          view_quality_( 'h' ),
+          focus_side_( 'n' ),
+          focus_unum_( 0 ),
+          state_( 0 ),
+          x_( 0.0f ),
+          y_( 0.0f ),
+          vx_( SHOWINFO_SCALE2F ),
+          vy_( SHOWINFO_SCALE2F ),
+          body_( 0.0f ),
+          neck_( SHOWINFO_SCALE2F ),
+          point_x_( SHOWINFO_SCALE2F ),
+          point_y_( SHOWINFO_SCALE2F ),
+          view_width_( SHOWINFO_SCALE2F ),
+          stamina_( SHOWINFO_SCALE2F ),
+          effort_( SHOWINFO_SCALE2F ),
+          recovery_( SHOWINFO_SCALE2F ),
+          stamina_capacity_( -1.0f ),
+          kick_count_( 0xFFFF ),
+          dash_count_( 0xFFFF ),
+          turn_count_( 0xFFFF ),
+          catch_count_( 0xFFFF ),
+          move_count_( 0xFFFF ),
+          turn_neck_count_( 0xFFFF ),
+          change_view_count_( 0xFFFF ),
+          say_count_( 0xFFFF ),
+          tackle_count_( 0xFFFF ),
+          pointto_count_( 0xFFFF ),
+          attentionto_count_( 0xFFFF )
       { }
 
     /*!
@@ -675,38 +683,49 @@ struct PlayerT {
       }
 
     /*!
-      \brief check if view quality is high.
-      \return true if view quality is high.
+      \brief get uniform number
+      \return uniform number
      */
-    bool highQuality() const
+    int unum() const
       {
-          return ( view_quality_ == 'h' );
+          return unum_;
       }
 
     /*!
-      \brief get focused player's side id
-      \return side id
+      \brief get heterogeneous player type id
+      \return id number
      */
-    SideID focusSide() const
+    int type() const
       {
-          return ( side_ == 'l' ? LEFT
-                   : side_ == 'r' ? RIGHT
-                   : NEUTRAL );
+          return type_;
+      }
+
+    //
+    // information level
+    //
+
+    /*!
+      \brief check if this object has player type info
+      \return checked result
+     */
+    bool hasType() const
+      {
+          return type_ >= 0;
       }
 
     /*!
       \brief check if this object has velocity info
-      \return true if this object has velocity info
+      \return checked result
      */
     bool hasVelocity() const
       {
-          return vx_ != SHOWINFO_SCALE2F
-              && vy_ != SHOWINFO_SCALE2F;
+          return vx_ != SHOWINFO_SCALE2F;
+          //&& vy_ != SHOWINFO_SCALE2F;
       }
 
     /*!
       \brief check if this object has neck info
-      \return true if this object has neck info
+      \return checked result
      */
     bool hasNeck() const
       {
@@ -715,7 +734,7 @@ struct PlayerT {
 
     /*!
       \brief check if this object has view width info
-      \return true if this object has view width info
+      \return checked result
      */
     bool hasView() const
       {
@@ -733,16 +752,38 @@ struct PlayerT {
 
     /*!
       \brief check if this object has stamina capacity info
-      \return true if this object has stamina capacity info
+      \return checked result
      */
     bool hasStaminaCapacity() const
       {
-          return stamina_capacity_ >= 0;
+          return stamina_capacity_ >= 0.0f;
       }
 
     /*!
+      \brief check if this object has command count info
+      \return checked result
+     */
+    bool hasCommandCount() const
+      {
+          return kick_count_ != 0xFFFF;
+      }
+
+    /*!
+      \brief check if this object has arm information
+      \return checked result
+     */
+    bool hasArm() const
+      {
+          return point_x_ != SHOWINFO_SCALE2F;
+      }
+
+    //
+    // player state
+    //
+
+    /*!
       \brief check if this object is enabled.
-      \return true if this object is enabled.
+      \return checked result
      */
     bool isAlive() const
       {
@@ -751,16 +792,17 @@ struct PlayerT {
 
     /*!
       \brief check if this object is kicking.
-      \return true if this object is kicking.
+      \return checked result
      */
     bool isKicking() const
       {
-          return state_ & KICK;
+          return state_ & KICK
+              && !( state_ & KICK_FAULT );
       }
 
     /*!
       \brief check if this object is kicking fault.
-      \return true if this object is kicking fault.
+      \return checked result
      */
     bool isKickingFault() const
       {
@@ -769,7 +811,7 @@ struct PlayerT {
 
     /*!
       \brief check if this object is goalie.
-      \return true if this object is goalie.
+      \return checked result
      */
     bool isGoalie() const
       {
@@ -778,16 +820,17 @@ struct PlayerT {
 
     /*!
       \brief check if this object is catching.
-      \return true if this object is catching.
+      \return checked result
      */
     bool isCatching() const
       {
-          return state_ & CATCH;
+          return state_ & CATCH
+              && !( state_ & CATCH_FAULT );
       }
 
     /*!
       \brief check if this object is catching fault.
-      \return true if this object is catching fault.
+      \return checked result
      */
     bool isCatchingFault() const
       {
@@ -795,17 +838,38 @@ struct PlayerT {
       }
 
     /*!
+      \brief check if this object is collided with ball.
+      \return checked result
+     */
+    bool isCollidedBall() const
+      {
+          return state_ & BALL_COLLIDE
+              || state_ & BALL_TO_PLAYER
+              || state_ & PLAYER_TO_BALL;
+      }
+
+    /*!
+      \brief check if this object is collided with player.
+      \return checked result
+     */
+    bool isCollidedPlayer() const
+      {
+          return state_ & PLAYER_COLLIDE;
+      }
+
+    /*!
       \brief check if this object is tackling
-      \return true if this object is tackling
+      \return checked result
      */
     bool isTackling() const
       {
-          return state_ & TACKLE;
+          return state_ & TACKLE
+              && !( state_ & TACKLE_FAULT );
       }
 
     /*!
       \brief check if this object is tackling fault.
-      \return true if this object is tackling fault.
+      \return checked result
      */
     bool isTacklingFault() const
       {
@@ -814,7 +878,7 @@ struct PlayerT {
 
     /*!
       \brief check if this object is pointing to somewhere.
-      \return true if this object is pointing to somewhere.
+      \return checked result
      */
     bool isPointing() const
       {
@@ -824,31 +888,115 @@ struct PlayerT {
 
     /*!
       \brief check if this object is focusing to someone.
-      \return true if this object is focusing to someone.
+      \return checked result
      */
     bool isFocusing() const
       {
-          return side_ != 'n';
+          return focus_side_ != 'n';
       }
 
     /*!
-      \brief check if this object is collided with ball.
-      \return true if this object is collided with ball.
+      \brief check if this player is chaged by an opponent player.
+      \return checked result
      */
-    bool isCollidedBall() const
+    bool isFoulCharged() const
       {
-          return state_ & BALL_COLLIDE;
+          return state_ & FOUL_CHARGED;
       }
 
     /*!
-      \brief check if this object is collided with player.
-      \return true if this object is collided with player.
+      \brief check if this player has yellow card or not.
+      \return checked result.
      */
-    bool isCollidedPlayer() const
+    bool hasYellowCard() const
       {
-          return state_ & PLAYER_COLLIDE;
+          return state_ & YELLOW_CARD;
       }
 
+    /*!
+      \brief check if this player has red card or not.
+      \return checked result.
+     */
+    bool hasRedCard() const
+      {
+          return state_ & RED_CARD;
+      }
+
+    /*!
+      \brief check if this player is marked as an illegal defense state
+      \return checked result.
+     */
+    bool isIllegalDefenseState() const
+      {
+          return state_ & ILLEGAL_DEFENSE;
+      }
+
+    /*!
+      \brief check if view quality is high.
+      \return true if view quality is high.
+     */
+    bool highQuality() const
+      {
+          return ( view_quality_ == 'h' );
+      }
+
+    /*!
+      \brief get focused player's side id
+      \return side id
+     */
+    SideID focusSide() const
+      {
+          return ( focus_side_ == 'l' ? LEFT
+                   : focus_side_ == 'r' ? RIGHT
+                   : NEUTRAL );
+      }
+
+    //
+    // accessor methods
+    //
+
+    int focusUnum() const { return focus_unum_; }
+
+    double x() const { return x_; }
+    double y() const { return y_; }
+
+    double deltaX() const { return vx_; }
+    double deltaY() const { return vy_; }
+
+    double body() const { return body_; }
+    double head() const { return body_ + neck_; }
+
+    double pointX() const { return point_x_; }
+    double pointY() const { return point_y_; }
+
+    double viewWidth() const { return view_width_; }
+
+    double stamina() const { return stamina_; }
+    double effort() const { return effort_; }
+    double recovery() const { return recovery_; }
+    double staminaCapacity() const { return stamina_capacity_; }
+
+    int kickCount() const { return kick_count_; }
+    int dashCount() const { return dash_count_; }
+    int turnCount() const { return turn_count_; }
+    int catchCount() const { return catch_count_; }
+    int moveCount() const { return move_count_; }
+    int turnNeckCount() const { return turn_neck_count_; }
+    int changeViewCount() const { return change_view_count_; }
+    int sayCount() const { return say_count_; }
+    int tackleCount() const { return tackle_count_; }
+    int pointtoCount() const { return pointto_count_; }
+    int attentiontoCount() const { return attentionto_count_; }
+
+    bool hasFullEffort( const double max_effort ) const
+      {
+          return std::fabs( max_effort - effort_ ) < 1.0e-5;
+      }
+
+    bool hasFullRecovery() const
+      {
+          return std::fabs( 1.0 - recovery_ ) < 1.0e-5;
+      }
 };
 
 /*!
@@ -865,9 +1013,9 @@ struct TeamT {
       \brief initialize all variables by 0
      */
     TeamT()
-        : score_( 0 )
-        , pen_score_( 0 )
-        , pen_miss_( 0 )
+        : score_( 0 ),
+          pen_score_( 0 ),
+          pen_miss_( 0 )
       { }
 
     /*!
@@ -881,10 +1029,10 @@ struct TeamT {
            const UInt16 score,
            const UInt16 pen_score,
            const UInt16 pen_miss )
-        : name_( name )
-        , score_( score )
-        , pen_score_( pen_score )
-        , pen_miss_( pen_miss )
+        : name_( name ),
+          score_( score ),
+          pen_score_( pen_score ),
+          pen_miss_( pen_miss )
       { }
 
     /*!
@@ -897,6 +1045,39 @@ struct TeamT {
           pen_score_ = 0;
           pen_miss_ = 0;
       }
+
+    /*!
+      \brief get the team name.
+      \return team name string.
+     */
+    const std::string & name() const
+      {
+          return name_;
+      }
+
+    /*!
+      \brief get the score of normal and overtime games.
+      \return score value.
+     */
+    int score() const
+      {
+          return score_;
+      }
+
+    /*!
+      \brief get the score of penalty shootouts.
+      \return score of penalty shootouts.
+     */
+    int penaltyScore() const
+      {
+          return pen_score_;
+      }
+
+    /*!
+      \brief get the miss count of penalty shootouts.
+      \return miss count of penalty shootouts.
+     */
+    int penaltyMiss() const { return pen_miss_; }
 
     /*!
       \brief get the total penalty trial count
@@ -928,12 +1109,9 @@ struct TeamT {
  */
 struct ShowInfoT {
     UInt32 time_; //!< game time
-    //    PlayMode pmode_;
-    //    TeamT team_[2];
     BallT ball_; //!< ball data
     PlayerT player_[MAX_PLAYER * 2]; //!< player data
 };
-
 
 /*!
   \struct DispInfoT

@@ -60,9 +60,6 @@ private:
     //! const reference to the WorldModel instance
     const WorldModel & M_world;
 
-    //! const reference to the ball position cache
-    const std::vector< Vector2D > & M_ball_pos_cache;
-
     // noncopyable
     SelfInterceptV13();
     SelfInterceptV13( const SelfInterceptV13 & );
@@ -72,10 +69,9 @@ public:
       \brief constructor
       \param world const reference to the WorldModel instance
     */
-    SelfInterceptV13( const WorldModel & world,
-                      const std::vector< Vector2D > & ball_pos_cache )
+    explicit
+    SelfInterceptV13( const WorldModel & world )
         : M_world( world )
-        , M_ball_pos_cache( ball_pos_cache )
       { }
 
     //////////////////////////////////////////////////////////
