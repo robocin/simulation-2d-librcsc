@@ -462,10 +462,6 @@ ActionEffector::makeCommand( std::ostream & to )
         {
             dlog.addText( Logger::SYSTEM,
                            __FILE__": WARNING. no body command." );
-            std::cerr << M_agent.world().teamName() << ' '
-                      << M_agent.world().self().unum()<< ": "
-                      << M_agent.world().time()
-                      << "  WARNING. no body command." << std::endl;
             // register dummy command
             PlayerTurnCommand turn( 0 );
             turn.toCommandString( to );

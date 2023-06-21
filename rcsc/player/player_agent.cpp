@@ -2472,10 +2472,8 @@ PlayerAgent::Impl::doNeckAction()
     }
     else
     {
-        std::cerr << agent_.world().teamName() << ' '
-                  << agent_.world().self().unum() << ": "
-                  << agent_.world().time()
-                  << "  WARNING. no turn_neck." << std::endl;
+        dlog.addText( Logger::SYSTEM,
+                    __FILE__": WARNING. no turn_neck." );
     }
 }
 
