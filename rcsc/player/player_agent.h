@@ -57,6 +57,7 @@ class SeeState;
 class SoccerIntention;
 class NeckAction;
 class ViewAction;
+class FocusAction;
 class VisualSensor;
 
 /*!
@@ -241,8 +242,6 @@ public:
     */
     bool doMove( const double & x,
                  const double & y );
-    
-    bool doOmniDash( PlayerAgent * agent, Vector2D point );
 
     /*!
       \brief register tackle command
@@ -268,6 +267,14 @@ public:
       ViewQuality should not be changed by user
     */
     bool doChangeView( const ViewWidth & width );
+
+    /*!
+      \brief register change_focus command
+      \param moment_dist distance added to the current focus point
+      \param moment_dir direction added to the current focus point
+     */
+    bool doChangeFocus( const double moment_dist,
+                        const AngleDeg & moment_dir );
 
     /*
       brief register say command.
@@ -324,6 +331,13 @@ public:
       \param act pointer to the action. must be a dynamically allocated object.
     */
     void setViewAction( ViewAction * act );
+
+    /*!
+      \brief reserve change_focus action
+      \param act pointer to the action. must be a dynamically allocated object.
+    */
+    void setFocusAction( FocusAction * act );
+
 
     /*!
       \brief add say message to the action effector
