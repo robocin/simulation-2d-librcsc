@@ -1,6 +1,10 @@
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON) # need for linking OBJCET libraries to a shared library
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/include)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/lib)
+link_libraries(onnxruntime)
+
 add_subdirectory(util)
 add_subdirectory(geom)
 add_subdirectory(gz)

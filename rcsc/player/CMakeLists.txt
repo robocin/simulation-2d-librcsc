@@ -1,4 +1,3 @@
-
 add_library(rcsc_player OBJECT
   abstract_player_object.cpp
   action_effector.cpp
@@ -13,6 +12,7 @@ add_library(rcsc_player OBJECT
   intercept_table.cpp
   localization_default.cpp
   object_table.cpp
+  onnx_model.cpp
   penalty_kick_state.cpp
   player_command.cpp
   player_agent.cpp
@@ -33,7 +33,15 @@ target_include_directories(rcsc_player
   PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}
+  ${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/include
   )
+
+target_link_directories(rcsc_player
+  PRIVATE
+  ${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/lib
+  )
+
+target_link_libraries(rcsc_player onnxruntime)
 
 install(FILES
   abstract_player_object.h
@@ -52,6 +60,7 @@ install(FILES
   localization.h
   localization_default.h
   object_table.h
+  onnx_model.h
   penalty_kick_state.h
   player_command.h
   player_agent.h

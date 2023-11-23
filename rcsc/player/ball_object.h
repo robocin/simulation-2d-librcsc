@@ -303,6 +303,13 @@ public:
       \brief update by intenal memory
       \param act const reference to the action effector
     */
+    void deepUpdate( const ActionEffector & act,
+                 const GameMode & game_mode );
+
+    /*!
+      \brief update by intenal memory
+      \param act const reference to the action effector
+    */
     void update( const ActionEffector & act,
                  const GameMode & game_mode );
 

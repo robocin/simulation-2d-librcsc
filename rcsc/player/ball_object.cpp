@@ -38,6 +38,7 @@
 #include "action_effector.h"
 #include "self_object.h"
 #include "player_command.h"
+#include "onnx_model.h"
 
 #include <rcsc/common/logger.h>
 #include <rcsc/common/server_param.h>
@@ -119,6 +120,20 @@ BallObject::setGhost()
         M_ghost_count = 1;
     }
 }
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+void
+BallObject::deepUpdate( const ActionEffector & act,
+                    const GameMode & game_mode )
+{
+    Ort::Env* onnxEnv = new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "test");
+    LearningModels::OnnxModel* model = new  LearningModels::OnnxModel("pass_model.onnx", onnxEnv);
+}
+
+
 
 /*-------------------------------------------------------------------*/
 /*!
