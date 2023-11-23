@@ -42,6 +42,7 @@ add_library(rcsc SHARED
   $<TARGET_OBJECTS:rcsc_trainer>
   )
 
+
 target_include_directories(rcsc
   PUBLIC
   ${Boost_INCLUDE_DIRS}
@@ -49,10 +50,18 @@ target_include_directories(rcsc
   PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}
+  ${PROJECT_SOURCE_DIR}/onnxruntime/include
 #  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
 #  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
 #  $<INSTALL_INTERFACE:include>
   )
+
+target_link_directories(rcsc
+  PUBLIC
+  ${PROJECT_SOURCE_DIR}/onnxruntime/lib
+  )
+
+target_link_libraries(rcsc onnxruntime)
 
 set_target_properties(rcsc PROPERTIES
   VERSION ${LIBRCSC_BUILDVERSION}

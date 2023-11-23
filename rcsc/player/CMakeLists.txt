@@ -33,12 +33,12 @@ target_include_directories(rcsc_player
   PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}
-  ${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/include
+  ${PROJECT_SOURCE_DIR}/onnxruntime/include
   )
 
 target_link_directories(rcsc_player
   PRIVATE
-  ${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/lib
+  ${PROJECT_SOURCE_DIR}/onnxruntime/lib
   )
 
 target_link_libraries(rcsc_player onnxruntime)
