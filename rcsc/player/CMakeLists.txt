@@ -12,7 +12,6 @@ add_library(rcsc_player OBJECT
   intercept_table.cpp
   localization_default.cpp
   object_table.cpp
-  onnx_model.cpp
   penalty_kick_state.cpp
   player_command.cpp
   player_agent.cpp
@@ -60,7 +59,6 @@ install(FILES
   localization.h
   localization_default.h
   object_table.h
-  onnx_model.h
   penalty_kick_state.h
   player_command.h
   player_agent.h

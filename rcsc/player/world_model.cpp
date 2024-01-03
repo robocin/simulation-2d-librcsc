@@ -803,7 +803,7 @@ WorldModel::update( const ActionEffector & act,
 
     // internal update
     M_self.update( act, current );
-    M_ball.update( act, gameMode() );
+    M_ball.deepUpdate( act, gameMode() );
 
 #ifdef DEBUG_PRINT
     if ( M_ball.rposValid() )

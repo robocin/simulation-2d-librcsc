@@ -38,7 +38,6 @@
 #include "action_effector.h"
 #include "self_object.h"
 #include "player_command.h"
-#include "onnx_model.h"
 
 #include <rcsc/common/logger.h>
 #include <rcsc/common/server_param.h>
@@ -80,7 +79,9 @@ BallObject::BallObject()
       M_lost_count( 0 ),
       M_ghost_count( 0 ),
       M_dist_from_self( 1000.0 ),
-      M_angle_from_self( 0.0 )
+      M_angle_from_self( 0.0 ),
+      onnxEnv(new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "test")),
+      model(new BallModel("sample_ball_model.onnx", onnxEnv))
 {
 
 }
@@ -129,8 +130,10 @@ void
 BallObject::deepUpdate( const ActionEffector & act,
                     const GameMode & game_mode )
 {
-    Ort::Env* onnxEnv = new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "test");
-    LearningModels::OnnxModel* model = new  LearningModels::OnnxModel("pass_model.onnx", onnxEnv);
+    this->update(act, game_mode); // updating ball position
+
+    act.queuedNextBallPos();
+    M_pos += model->getBallError(act.queuedNextSelfPos(), M_pos);
 }
 
 

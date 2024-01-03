@@ -40,6 +40,9 @@
 
 #include <list>
 
+#include <rcsc/learning_models/ball_model.h>
+#include <onnxruntime_cxx_api.h>
+
 namespace rcsc {
 
 class GameMode;
@@ -104,6 +107,9 @@ private:
 
     // not used
     BallObject( const BallObject & ball ) = delete;
+
+    Ort::Env* onnxEnv;
+    BallModel* model;
 
 public:
     /*!
