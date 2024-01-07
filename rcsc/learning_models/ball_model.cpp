@@ -16,8 +16,9 @@ BallModel::BallModel(const char *modelPath, Ort::Env *env, int numberofThreads)
 */
 rcsc::Vector2D BallModel::getBallError(const rcsc::Vector2D selfPos, const rcsc::Vector2D ballPos)
 {
-    std::vector<float> frame = this->createFrame(selfPos, ballPos);
-    std::vector<float> output = *(this->forward<std::vector<float>>(frame));
+    std::vector<double> frame = this->createFrame(selfPos, ballPos);
+    std::array<double, 2> output;
+    Ort::Value outputTensor = this->forward<double, std::array<double, 2>>(frame, input_shape_, output, output_shape_);
     rcsc::Vector2D result = rcsc::Vector2D(output[0], output[1]);
     return result;
 }
@@ -27,7 +28,7 @@ rcsc::Vector2D BallModel::getBallError(const rcsc::Vector2D selfPos, const rcsc:
     This function creates a frame to be used by the model. You must create a function like this for a model,
     to handle any preprocessing step of a model.
 */
-std::vector<float> BallModel::createFrame(const rcsc::Vector2D selfPos, const rcsc::Vector2D ballPos)
+std::vector<double> BallModel::createFrame(const rcsc::Vector2D selfPos, const rcsc::Vector2D ballPos)
 {
     double distance = (ballPos - selfPos).length();
     double frame[3];
@@ -36,5 +37,5 @@ std::vector<float> BallModel::createFrame(const rcsc::Vector2D selfPos, const rc
     frame[1] = ballPos.y;
     frame[2] = distance;
 
-    return std::vector<float>(frame, frame + 3);
+    return std::vector<double>(frame, frame + 3);
 }

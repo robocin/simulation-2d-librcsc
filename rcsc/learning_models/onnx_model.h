@@ -39,38 +39,48 @@ instance of your data and its size must be the number of features from a sample.
 */
 class OnnxModel
 {
-  public:
+public:
 #ifdef ONNX_ENABLED
     OnnxModel(const char *modelPath, Ort::Env *env, int numberofThreads = 1);
+    std::vector<int64_t> input_shape_;
 #endif
     OnnxModel();
     ~OnnxModel();
 
-  protected:
+protected:
 #ifdef ONNX_ENABLED
-    template <typename ONNXRETURNTYPE> ONNXRETURNTYPE *forward(std::vector<float> frame)
+    template <typename I, typename R> Ort::Value forward(std::vector<I> inputFrame, std::vector<int64_t> inputShape, R output, std::vector<int64_t> outputShape)
     {
-        // Init the input tensor
-        size_t inputTensorSize = frame.size();
-        auto memory_info = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
-        Ort::Value input_tensor =
-            Ort::Value::CreateTensor<float>(memory_info, frame.data(), inputTensorSize, this->inputNodeDims.data(), 2);
+        auto memoryInfo = Ort::MemoryInfo::CreateCpu(OrtArenaAllocator, OrtMemTypeDefault);
+        Ort::Value inputTensor =
+            Ort::Value::CreateTensor<I>(memoryInfo, inputFrame.data(), inputFrame.size(), inputShape.data(), inputShape.size());
+        Ort::Value outputTensor =
+            Ort::Value::CreateTensor<I>(memoryInfo, output.data(), output.size(), outputShape.data(), outputShape.size());
 
         // Get our model output
-        std::vector<const char *> output_node_names;
+        std::vector<const char *> outputNodeNames;
         for (int i = 0; i < this->session->GetOutputCount(); i++)
         {
-            output_node_names.push_back(this->session->GetOutputName(i, allocator));
+            outputNodeNames.push_back(this->session->GetOutputName(i, allocator));
         }
-        auto output_tensors = this->session->Run(Ort::RunOptions().UnsetTerminate(), this->inputNodeNames.data(),
-                                                 &input_tensor, 1, output_node_names.data(), 1);
-        ONNXRETURNTYPE *arr = output_tensors.front().GetTensorMutableData<ONNXRETURNTYPE>();
-        return arr;
+
+        this->session->Run(
+            Ort::RunOptions().UnsetTerminate(),
+            this->inputNodeNames.data(), 
+            &inputTensor, 
+            1, 
+            outputNodeNames.data(), 
+            &outputTensor, 
+            1
+        );
+
+        return outputTensor;
     }
 
     Ort::Session *session;
     Ort::Env *env;
     size_t numInputNodes;
+    size_t outputNodeDims;
     std::vector<int64_t> inputNodeDims;
     Ort::AllocatorWithDefaultOptions allocator;
     std::vector<char *> inputNodeNames;

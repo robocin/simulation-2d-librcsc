@@ -16,14 +16,15 @@ LearningModels::OnnxModel::OnnxModel(const char *modelPath, Ort::Env *env, int n
 
     // Load session
     this->session = new Ort::Session(*env, modelPath, session_options);
+    this->outputNodeDims = session->GetOutputCount();
 
     // Get the properties of our model
     this->numInputNodes = session->GetInputCount();
     this->inputNodeNames = std::vector<char *>(this->numInputNodes);
 
-    for (int i = 0; i < numInputNodes; i++)
+    for (size_t i = 0; i < numInputNodes; i++)
     {
-        char *input_name = session->GetInputName(i, allocator);
+        char *input_name = session->GetInputName(i, this->allocator);
         this->inputNodeNames[i] = input_name;
         Ort::TypeInfo typeInfo = session->GetInputTypeInfo(i);
         auto tensorInfo = typeInfo.GetTensorTypeAndShapeInfo();
