@@ -133,7 +133,6 @@ BallObject::deepUpdate( const ActionEffector & act,
     this->update(act, game_mode); // updating ball position
 
     act.queuedNextBallPos();
-    std::cout << "DEEP UPDATE BALL FUNCTION ----" << std::endl;
     M_pos += model->getBallError(act.queuedNextSelfPos(), M_pos);
 }
 
