@@ -59,7 +59,7 @@ protected:
 
         // Get our model output
         std::vector<const char *> outputNodeNames;
-        for (int i = 0; i < this->session->GetOutputCount(); i++)
+        for (size_t i = 0; i < this->session->GetOutputCount(); i++)
         {
             outputNodeNames.push_back(this->session->GetOutputName(i, allocator));
         }
