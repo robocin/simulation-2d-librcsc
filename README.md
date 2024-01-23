@@ -25,14 +25,13 @@ sudo apt install build-essential libboost-all-dev autoconf automake libtool
 
 To build the library, execute commands from the root of source directory:
 ```
-./bootstrap
-./configure --disable-unit-test
-make
+mkdir build && cd build
+cmake .. && make
 ```
 
 Once successfully built, you can install the library file and header files to the default installation directory (``/usr/local``):
 ```
-sudo make install
+make install
 ```
 It is recommended to change the installation directory to the under of your home directory.
 See the next section in detail.
