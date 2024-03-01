@@ -377,7 +377,12 @@ CSVPrinter::printShowHeader() const
                  << ", " << side << i << "_vx"
                  << ", " << side << i << "_vy"
                  << ", " << side << i << "_body"
-                 << ", " << side << i << "_neck";
+                 << ", " << side << i << "_neck"
+                 << ", " << side << i << "_stamina"
+                 << ", " << side << i << "_recovery"
+                 << ", " << side << i << "_effort"
+                 << ", " << side << i << "_capacity"
+                 ;
         }
         side = 'r';
     }
@@ -498,7 +503,11 @@ CSVPrinter::printPlayer( const rcsc::rcg::PlayerT & player ) const
              << ',' //<< player.vx_
              << ',' //<< player.vy_
              << ',' //<< player.body_
-             << ',' //<< player.neck_;
+             << ',' //<< player.neck_
+             << ',' //<< player.stamina_
+             << ',' //<< player.recovery_
+             << ',' //<< player.effort_
+             << ',' //<< player.stamina_capacity_
             ;
     }
     else
@@ -510,6 +519,10 @@ CSVPrinter::printPlayer( const rcsc::rcg::PlayerT & player ) const
              << ',' << player.vy_
              << ',' << player.body_
              << ',' << player.neck_
+             << ',' << player.stamina_
+             << ',' << player.recovery_
+             << ',' << player.effort_
+             << ',' << player.stamina_capacity_
             ;
     }
     return M_os;

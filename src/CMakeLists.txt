@@ -89,6 +89,7 @@ include_directories(
 install(TARGETS
   rclmscheduler
   rclmtableprinter
+  rcg2csv
   rcg2txt
   rcgrenameteam
   rcgresultprinter
