@@ -40,6 +40,9 @@
 
 #include <list>
 
+#include <rcsc/learning_models/ball_model.h>
+#include <onnxruntime_cxx_api.h>
+
 namespace rcsc {
 
 class GameMode;
@@ -104,6 +107,9 @@ private:
 
     // not used
     BallObject( const BallObject & ball ) = delete;
+
+    Ort::Env* onnxEnv;
+    BallModel* model;
 
 public:
     /*!
@@ -298,6 +304,13 @@ public:
       \brief clear all confidence values
     */
     void setGhost();
+
+    /*!
+      \brief update by intenal memory
+      \param act const reference to the action effector
+    */
+    void deepUpdate( const ActionEffector & act,
+                 const GameMode & game_mode );
 
     /*!
       \brief update by intenal memory

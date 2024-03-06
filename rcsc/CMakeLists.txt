@@ -1,6 +1,10 @@
 
 set(CMAKE_POSITION_INDEPENDENT_CODE ON) # need for linking OBJCET libraries to a shared library
 
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/include)
+link_directories(${CMAKE_CURRENT_SOURCE_DIR}/onnxruntime/lib)
+link_libraries(onnxruntime)
+
 add_subdirectory(util)
 add_subdirectory(geom)
 add_subdirectory(gz)
@@ -14,6 +18,7 @@ add_subdirectory(formation)
 add_subdirectory(color)
 add_subdirectory(common)
 add_subdirectory(monitor)
+add_subdirectory(learning_models)
 add_subdirectory(player)
 add_subdirectory(coach)
 add_subdirectory(trainer)
@@ -33,10 +38,12 @@ add_library(rcsc SHARED
   $<TARGET_OBJECTS:rcsc_color>
   $<TARGET_OBJECTS:rcsc_common>
   $<TARGET_OBJECTS:rcsc_monitor>
+  $<TARGET_OBJECTS:rcsc_learning_models>
   $<TARGET_OBJECTS:rcsc_player>
   $<TARGET_OBJECTS:rcsc_coach>
   $<TARGET_OBJECTS:rcsc_trainer>
   )
+
 
 target_include_directories(rcsc
   PUBLIC
@@ -45,10 +52,18 @@ target_include_directories(rcsc
   PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}
+  ${PROJECT_SOURCE_DIR}/onnxruntime/include
 #  $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>
 #  $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}>
 #  $<INSTALL_INTERFACE:include>
   )
+
+target_link_directories(rcsc
+  PUBLIC
+  ${PROJECT_SOURCE_DIR}/onnxruntime/lib
+  )
+
+target_link_libraries(rcsc onnxruntime)
 
 set_target_properties(rcsc PROPERTIES
   VERSION ${LIBRCSC_BUILDVERSION}

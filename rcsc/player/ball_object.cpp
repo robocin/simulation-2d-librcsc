@@ -79,7 +79,9 @@ BallObject::BallObject()
       M_lost_count( 0 ),
       M_ghost_count( 0 ),
       M_dist_from_self( 1000.0 ),
-      M_angle_from_self( 0.0 )
+      M_angle_from_self( 0.0 ),
+      onnxEnv(new Ort::Env(ORT_LOGGING_LEVEL_WARNING, "test")),
+      model(new BallModel("sample_ball_model.onnx", onnxEnv))
 {
 
 }
@@ -119,6 +121,22 @@ BallObject::setGhost()
         M_ghost_count = 1;
     }
 }
+
+/*-------------------------------------------------------------------*/
+/*!
+
+ */
+void
+BallObject::deepUpdate( const ActionEffector & act,
+                    const GameMode & game_mode )
+{
+    this->update(act, game_mode); // updating ball position
+
+    act.queuedNextBallPos();
+    M_pos += model->getBallError(act.queuedNextSelfPos(), M_pos);
+}
+
+
 
 /*-------------------------------------------------------------------*/
 /*!

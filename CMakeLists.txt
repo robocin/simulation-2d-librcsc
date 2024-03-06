@@ -12,6 +12,8 @@ endif()
 # compliler options
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
+# to use deep learning ball positioning:
+# add_definitions(-DWITH_BALL_PREDICTOR)
 
 if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Release" CACHE STRING "" FORCE)
