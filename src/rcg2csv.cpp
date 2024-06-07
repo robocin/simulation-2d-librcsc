@@ -377,7 +377,12 @@ CSVPrinter::printShowHeader() const
                  << ", " << side << i << "_vx"
                  << ", " << side << i << "_vy"
                  << ", " << side << i << "_body"
-                 << ", " << side << i << "_neck";
+                 << ", " << side << i << "_neck"
+                 << ", " << side << i << "_stamina"
+                 << ", " << side << i << "_recovery"
+                 << ", " << side << i << "_effort"
+                 << ", " << side << i << "_capacity"
+                 ;
         }
         side = 'r';
     }
@@ -498,7 +503,28 @@ CSVPrinter::printPlayer( const rcsc::rcg::PlayerT & player ) const
              << ',' //<< player.vx_
              << ',' //<< player.vy_
              << ',' //<< player.body_
-             << ',' //<< player.neck_;
+             << ',' //<< player.neck_
+             << ',' //<< player.point_x_
+             << ',' //<< player.point_y_
+             << ',' //<< player.view_quality_
+             << ',' //<< player.view_width_
+             << ',' //<< player.stamina_
+             << ',' //<< player.recovery_
+             << ',' //<< player.effort_
+             << ',' //<< player.stamina_capacity_
+             << ',' //<< player.focus_side_
+             << ',' //<< player.focus_unum_
+             << ',' //<< player.kick_count_
+             << ',' //<< player.dash_count_
+             << ',' //<< player.turn_count_
+             << ',' //<< player.catch_count_
+             << ',' //<< player.move_count_
+             << ',' //<< player.turn_neck_count_
+             << ',' //<< player.change_view_count_
+             << ',' //<< player.say_count_
+             << ',' //<< player.tackle_count_
+             << ',' //<< player.pointto_count_
+             << ',' //<< player.attentionto_count_
             ;
     }
     else
@@ -510,6 +536,27 @@ CSVPrinter::printPlayer( const rcsc::rcg::PlayerT & player ) const
              << ',' << player.vy_
              << ',' << player.body_
              << ',' << player.neck_
+             << ',' << player.point_x_
+             << ',' << player.point_y_
+             << ',' << player.view_quality_
+             << ',' << player.view_width_
+             << ',' << player.stamina_
+             << ',' << player.recovery_
+             << ',' << player.effort_
+             << ',' << player.stamina_capacity_
+             << ',' << player.focus_side_
+             << ',' << player.focus_unum_
+             << ',' << player.kick_count_
+             << ',' << player.dash_count_
+             << ',' << player.turn_count_
+             << ',' << player.catch_count_
+             << ',' << player.move_count_
+             << ',' << player.turn_neck_count_
+             << ',' << player.change_view_count_
+             << ',' << player.say_count_
+             << ',' << player.tackle_count_
+             << ',' << player.pointto_count_
+             << ',' << player.attentionto_count_
             ;
     }
     return M_os;
