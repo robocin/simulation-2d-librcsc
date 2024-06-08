@@ -360,9 +360,9 @@ std::ostream &
 CSVPrinter::printShowHeader() const
 {
 
-    M_os << "show_time, playmode, team_name_l, team_name_r, "
-         << "team_score_l, team_score_r, team_pen_score_l, team_pen_score_r, "
-         << "team_pen_miss_l, team_pen_miss_r, ball_x, ball_y, ball_vx, ball_vy";
+    M_os << "show_time,playmode,team_name_l,team_name_r,"
+         << "team_score_l,team_score_r,team_pen_score_l,team_pen_score_r,"
+         << "team_pen_miss_l,team_pen_miss_r,ball_x,ball_y,ball_vx,ball_vy";
 
     char side = 'l';
     for ( int s = 0; s < 2; ++s )
@@ -370,36 +370,36 @@ CSVPrinter::printShowHeader() const
         for ( int i = 1; i <= rcsc::MAX_PLAYER; ++i )
         {
 
-            M_os << ", player_" << side << i << "_side"
-                 << ", player_" << side << i << "_unum"
-                 << ", player_" << side << i << "_type"
-                 << ", player_" << side << i << "_state"
-                 << ", player_" << side << i << "_x"
-                 << ", player_" << side << i << "_y"
-                 << ", player_" << side << i << "_vx"
-                 << ", player_" << side << i << "_vy"
-                 << ", player_" << side << i << "_body"
-                 << ", player_" << side << i << "_neck"
-                 << ", player_" << side << i << "_point_to_x"
-                 << ", player_" << side << i << "_point_to_y"
-                 << ", player_" << side << i << "_view_quality"
-                 << ", player_" << side << i << "_view_width"
-                 << ", player_" << side << i << "_attribute_stamina"
-                 << ", player_" << side << i << "_attribute_effort"
-                 << ", player_" << side << i << "_attribute_recovery"
-                 << ", player_" << side << i << "_attribute_stamina_capacity"
-                 << ", player_" << side << i << "_focus_side"
-                 << ", player_" << side << i << "_counting_kick" 
-                 << ", player_" << side << i << "_counting_dash" 
-                 << ", player_" << side << i << "_counting_turn" 
-                 << ", player_" << side << i << "_counting_catch" 
-                 << ", player_" << side << i << "_counting_move" 
-                 << ", player_" << side << i << "_counting_turn_neck" 
-                 << ", player_" << side << i << "_counting_change_view" 
-                 << ", player_" << side << i << "_counting_say" 
-                 << ", player_" << side << i << "_counting_tackle"
-                 << ", player_" << side << i << "_counting_point_to"
-                 << ", player_" << side << i << "_counting_attention_to";
+            M_os << ",player_" << side << i << "_side"
+                 << ",player_" << side << i << "_unum"
+                 << ",player_" << side << i << "_type"
+                 << ",player_" << side << i << "_state"
+                 << ",player_" << side << i << "_x"
+                 << ",player_" << side << i << "_y"
+                 << ",player_" << side << i << "_vx"
+                 << ",player_" << side << i << "_vy"
+                 << ",player_" << side << i << "_body"
+                 << ",player_" << side << i << "_neck"
+                 << ",player_" << side << i << "_point_to_x"
+                 << ",player_" << side << i << "_point_to_y"
+                 << ",player_" << side << i << "_view_quality"
+                 << ",player_" << side << i << "_view_width"
+                 << ",player_" << side << i << "_attribute_stamina"
+                 << ",player_" << side << i << "_attribute_effort"
+                 << ",player_" << side << i << "_attribute_recovery"
+                 << ",player_" << side << i << "_attribute_stamina_capacity"
+                 << ",player_" << side << i << "_focus_side"
+                 << ",player_" << side << i << "_counting_kick" 
+                 << ",player_" << side << i << "_counting_dash" 
+                 << ",player_" << side << i << "_counting_turn" 
+                 << ",player_" << side << i << "_counting_catch" 
+                 << ",player_" << side << i << "_counting_move" 
+                 << ",player_" << side << i << "_counting_turn_neck" 
+                 << ",player_" << side << i << "_counting_change_view" 
+                 << ",player_" << side << i << "_counting_say" 
+                 << ",player_" << side << i << "_counting_tackle"
+                 << ",player_" << side << i << "_counting_point_to"
+                 << ",player_" << side << i << "_counting_attention_to";
 
         }
         side = 'r';
@@ -474,15 +474,15 @@ CSVPrinter::printTeams() const
     }
 
     for ( const auto & t : M_teams ) {
-        M_os << ", " << t.score_;
+        M_os << "," << t.score_;
     }
 
     for ( const auto & t : M_teams ) {
-        M_os << ", " << t.pen_score_;
+        M_os << "," << t.pen_score_;
     }
     
     for ( const auto & t : M_teams ) {
-        M_os << ", " << t.pen_miss_;
+        M_os << "," << t.pen_miss_;
     }
 
     return M_os;
