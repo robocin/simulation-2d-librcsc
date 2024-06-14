@@ -1,4 +1,3 @@
-
 add_library(rcsc_player OBJECT
   abstract_player_object.cpp
   action_effector.cpp
@@ -33,7 +32,15 @@ target_include_directories(rcsc_player
   PRIVATE
   ${PROJECT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}
+  ${PROJECT_SOURCE_DIR}/onnxruntime/include
   )
+
+target_link_directories(rcsc_player
+  PRIVATE
+  ${PROJECT_SOURCE_DIR}/onnxruntime/lib
+  )
+
+target_link_libraries(rcsc_player onnxruntime)
 
 install(FILES
   abstract_player_object.h
