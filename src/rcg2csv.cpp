@@ -359,30 +359,48 @@ CSVPrinter::printPlayerTypes() const
 std::ostream &
 CSVPrinter::printShowHeader() const
 {
-    M_os << "#"
-         << ", cycle, stopped"
-         << ", playmode"
-         << ", l_name, l_score, l_pen_score"
-         << ", r_name, r_score, r_pen_score"
-         << ", b_x, b_y, b_vx, b_vy";
+
+    M_os << "show_time,playmode,team_name_l,team_name_r,"
+         << "team_score_l,team_score_r,team_pen_score_l,team_pen_score_r,"
+         << "team_pen_miss_l,team_pen_miss_r,ball_x,ball_y,ball_vx,ball_vy";
 
     char side = 'l';
     for ( int s = 0; s < 2; ++s )
     {
         for ( int i = 1; i <= rcsc::MAX_PLAYER; ++i )
         {
-            M_os << ", " << side << i << "_t"
-                 << ", " << side << i << "_x"
-                 << ", " << side << i << "_y"
-                 << ", " << side << i << "_vx"
-                 << ", " << side << i << "_vy"
-                 << ", " << side << i << "_body"
-                 << ", " << side << i << "_neck"
-                 << ", " << side << i << "_stamina"
-                 << ", " << side << i << "_recovery"
-                 << ", " << side << i << "_effort"
-                 << ", " << side << i << "_capacity"
-                 ;
+
+            M_os << ",player_" << side << i << "_side"
+                 << ",player_" << side << i << "_unum"
+                 << ",player_" << side << i << "_type"
+                 << ",player_" << side << i << "_state"
+                 << ",player_" << side << i << "_x"
+                 << ",player_" << side << i << "_y"
+                 << ",player_" << side << i << "_vx"
+                 << ",player_" << side << i << "_vy"
+                 << ",player_" << side << i << "_body"
+                 << ",player_" << side << i << "_neck"
+                 << ",player_" << side << i << "_point_to_x"
+                 << ",player_" << side << i << "_point_to_y"
+                 << ",player_" << side << i << "_view_quality"
+                 << ",player_" << side << i << "_view_width"
+                 << ",player_" << side << i << "_attribute_stamina"
+                 << ",player_" << side << i << "_attribute_effort"
+                 << ",player_" << side << i << "_attribute_recovery"
+                 << ",player_" << side << i << "_attribute_stamina_capacity"
+                 << ",player_" << side << i << "_focus_side"
+                 << ",player_" << side << i << "_counting_kick" 
+                 << ",player_" << side << i << "_counting_dash" 
+                 << ",player_" << side << i << "_counting_turn" 
+                 << ",player_" << side << i << "_counting_catch" 
+                 << ",player_" << side << i << "_counting_move" 
+                 << ",player_" << side << i << "_counting_turn_neck" 
+                 << ",player_" << side << i << "_counting_change_view" 
+                 << ",player_" << side << i << "_counting_say" 
+                 << ",player_" << side << i << "_counting_tackle"
+                 << ",player_" << side << i << "_counting_point_to"
+                 << ",player_" << side << i << "_counting_attention_to";
+
         }
         side = 'r';
     }
@@ -398,7 +416,7 @@ CSVPrinter::printShowHeader() const
 std::ostream &
 CSVPrinter::printShowData( const rcsc::rcg::ShowInfoT & show ) const
 {
-    printShowCount();
+    // printShowCount();
     printTime();
     printPlayMode();
     printTeams();
@@ -427,7 +445,8 @@ CSVPrinter::printShowCount() const
 std::ostream &
 CSVPrinter::printTime() const
 {
-    M_os << ',' << M_cycle << ',' << M_stopped;
+    // M_os << ',' << M_cycle << ',' << M_stopped;
+    M_os << M_cycle;
     return M_os;
 }
 
@@ -451,9 +470,19 @@ CSVPrinter::printTeams() const
 {
     for ( const auto & t : M_teams )
     {
-        M_os << ',' << t.name_
-             << ',' << t.score_
-             << ',' << t.pen_score_;
+        M_os << ',' << t.name_;
+    }
+
+    for ( const auto & t : M_teams ) {
+        M_os << "," << t.score_;
+    }
+
+    for ( const auto & t : M_teams ) {
+        M_os << "," << t.pen_score_;
+    }
+    
+    for ( const auto & t : M_teams ) {
+        M_os << "," << t.pen_miss_;
     }
 
     return M_os;
@@ -529,7 +558,10 @@ CSVPrinter::printPlayer( const rcsc::rcg::PlayerT & player ) const
     }
     else
     {
-        M_os << ',' << player.type_
+        M_os << ',' << player.side_
+             << ',' << player.unum_
+             << ',' << player.type_
+             << ',' << player.state_
              << ',' << player.x_
              << ',' << player.y_
              << ',' << player.vx_
@@ -541,11 +573,10 @@ CSVPrinter::printPlayer( const rcsc::rcg::PlayerT & player ) const
              << ',' << player.view_quality_
              << ',' << player.view_width_
              << ',' << player.stamina_
-             << ',' << player.recovery_
              << ',' << player.effort_
+             << ',' << player.recovery_
              << ',' << player.stamina_capacity_
              << ',' << player.focus_side_
-             << ',' << player.focus_unum_
              << ',' << player.kick_count_
              << ',' << player.dash_count_
              << ',' << player.turn_count_
